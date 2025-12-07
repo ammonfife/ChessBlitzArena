@@ -1146,6 +1146,154 @@
     <div class="confetti-container" id="confetti-container"></div>
 
     <script>
+        // ==================== LOGGING SYSTEM ====================
+        class Logger {
+            constructor() {
+                this.logs = [];
+                this.maxLogs = 500;
+                this.sessionId = this.generateSessionId();
+                this.init();
+            }
+
+            init() {
+                this.log('info', 'ChessBlitz Arena started', { sessionId: this.sessionId, timestamp: new Date().toISOString(), userAgent: navigator.userAgent });
+                this.setupErrorHandlers();
+                this.loadPreviousLogs();
+            }
+
+            generateSessionId() {
+                return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            log(level, message, data = {}) {
+                const logEntry = {
+                    timestamp: new Date().toISOString(),
+                    level,
+                    message,
+                    sessionId: this.sessionId,
+                    ...data
+                };
+
+                this.logs.push(logEntry);
+
+                // Keep only recent logs
+                if (this.logs.length > this.maxLogs) {
+                    this.logs = this.logs.slice(-this.maxLogs);
+                }
+
+                // Console output with color
+                const colors = {
+                    error: 'color: #e74c3c; font-weight: bold;',
+                    warn: 'color: #f39c12;',
+                    info: 'color: #3498db;',
+                    success: 'color: #2ecc71;',
+                    debug: 'color: #95a5a6;'
+                };
+                console.log(`%c[${level.toUpperCase()}] ${message}`, colors[level] || '', data);
+
+                // Save to localStorage
+                this.saveLogs();
+            }
+
+            saveLogs() {
+                try {
+                    localStorage.setItem('chessBlitzLogs', JSON.stringify(this.logs.slice(-100)));
+                } catch (e) {
+                    console.error('Failed to save logs:', e);
+                }
+            }
+
+            loadPreviousLogs() {
+                try {
+                    const saved = localStorage.getItem('chessBlitzLogs');
+                    if (saved) {
+                        const previousLogs = JSON.parse(saved);
+                        this.log('info', `Loaded ${previousLogs.length} previous log entries`);
+                    }
+                } catch (e) {
+                    this.log('error', 'Failed to load previous logs', { error: e.message });
+                }
+            }
+
+            setupErrorHandlers() {
+                // Global error handler
+                window.addEventListener('error', (event) => {
+                    this.log('error', 'Uncaught error', {
+                        message: event.message,
+                        filename: event.filename,
+                        lineno: event.lineno,
+                        colno: event.colno,
+                        error: event.error ? event.error.stack : null
+                    });
+                });
+
+                // Promise rejection handler
+                window.addEventListener('unhandledrejection', (event) => {
+                    this.log('error', 'Unhandled promise rejection', {
+                        reason: event.reason,
+                        promise: event.promise
+                    });
+                });
+
+                // Console override for capturing all console logs
+                const originalConsoleError = console.error;
+                console.error = (...args) => {
+                    this.log('error', 'Console error', { args: args.map(a => String(a)) });
+                    originalConsoleError.apply(console, args);
+                };
+            }
+
+            trackAction(action, details = {}) {
+                this.log('info', `User action: ${action}`, details);
+            }
+
+            trackPuzzle(puzzleData) {
+                this.log('info', 'Puzzle event', puzzleData);
+            }
+
+            trackPerformance(metric, value) {
+                this.log('debug', `Performance: ${metric}`, { value });
+            }
+
+            getLogs(level = null) {
+                if (level) {
+                    return this.logs.filter(log => log.level === level);
+                }
+                return this.logs;
+            }
+
+            exportLogs() {
+                const dataStr = JSON.stringify(this.logs, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `chessblitz-logs-${this.sessionId}.json`;
+                link.click();
+                this.log('info', 'Logs exported');
+            }
+
+            clearLogs() {
+                this.logs = [];
+                localStorage.removeItem('chessBlitzLogs');
+                this.log('info', 'Logs cleared');
+            }
+        }
+
+        // Initialize logger globally
+        const logger = new Logger();
+
+        // Add debug console commands
+        window.chessDebug = {
+            getLogs: () => logger.getLogs(),
+            getErrors: () => logger.getLogs('error'),
+            exportLogs: () => logger.exportLogs(),
+            clearLogs: () => logger.clearLogs(),
+            showStats: () => console.table(gameState)
+        };
+
+        logger.log('info', 'Debug console available: chessDebug.getLogs(), chessDebug.getErrors(), chessDebug.exportLogs()');
+
         // ==================== GAME STATE ====================
         const gameState = {
             // Player stats
@@ -1530,20 +1678,26 @@
             }
 
             const board = fenToBoard(gameState.currentPuzzle.fen);
+            const isBlackToMove = gameState.currentPuzzle.toMove === 'Black';
 
+            // Flip board if Black to move (so Black pieces face player)
             for (let row = 0; row < 8; row++) {
                 for (let col = 0; col < 8; col++) {
-                    const square = document.createElement('div');
-                    square.className = `square ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
-                    square.dataset.row = row;
-                    square.dataset.col = col;
+                    const displayRow = isBlackToMove ? row : row;
+                    const displayCol = isBlackToMove ? 7 - col : col;
+                    const actualRow = isBlackToMove ? 7 - row : row;
 
-                    const piece = board[row][col];
+                    const square = document.createElement('div');
+                    square.className = `square ${(displayRow + displayCol) % 2 === 0 ? 'light' : 'dark'}`;
+                    square.dataset.row = actualRow;
+                    square.dataset.col = displayCol;
+
+                    const piece = board[actualRow][displayCol];
                     if (piece) {
                         square.textContent = pieceMap[piece];
                     }
 
-                    square.addEventListener('click', () => handleSquareClick(row, col));
+                    square.addEventListener('click', () => handleSquareClick(actualRow, displayCol));
                     boardElement.appendChild(square);
                 }
             }
@@ -1605,6 +1759,13 @@
 
             gameState.puzzlesSolved++;
             gameState.streak++;
+
+            logger.trackAction('puzzle_correct', {
+                puzzle: gameState.currentPuzzle?.title,
+                rating: gameState.currentPuzzle?.rating,
+                streak: gameState.streak,
+                timeLeft: gameState.timer
+            });
             if (gameState.streak > gameState.bestStreak) {
                 gameState.bestStreak = gameState.streak;
             }
@@ -1678,6 +1839,12 @@
         function handleWrongAnswer() {
             gameState.puzzlesAttempted++;
             gameState.streak = 0;
+
+            logger.trackAction('puzzle_wrong', {
+                puzzle: gameState.currentPuzzle?.title,
+                rating: gameState.currentPuzzle?.rating,
+                timeLeft: gameState.timer
+            });
 
             // Rating loss (smaller than gain for encouragement)
             const ratingLoss = Math.floor(calculateRatingGain() * 0.5);
@@ -1832,6 +1999,7 @@
             if (!gameState.currentPuzzle) return;
 
             gameState.powers[type]--;
+            logger.trackAction('power_used', { type, remaining: gameState.powers[type] });
 
             switch (type) {
                 case 'hint':
