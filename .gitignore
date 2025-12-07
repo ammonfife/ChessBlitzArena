@@ -2,3 +2,29 @@ node_modules/
 .DS_Store
 *.log
 .env
+
+# Auth and credentials
+*.pem
+*.key
+*.p12
+*.pfx
+**/auth/
+**/secrets/
+**/.credentials/
+config/auth.json
+config/secrets.json
+credentials.json
+secrets.json
+auth.json
+
+# API keys and tokens
+*.env.local
+*.env.production
+.env.*
+!.env.example
+
+# Sensitive data
+*.csv.secret
+*.json.secret
+private/
+tmp/secrets/
