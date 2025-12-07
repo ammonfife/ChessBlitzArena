@@ -1706,21 +1706,38 @@
         function handleSquareClick(row, col) {
             if (!gameState.currentPuzzle) return;
 
-            const squares = document.querySelectorAll('.square');
-            const clickedSquare = squares[row * 8 + col];
+            const board = fenToBoard(gameState.currentPuzzle.fen);
+            const piece = board[row][col];
+            const isWhiteToMove = gameState.currentPuzzle.toMove === 'White';
+
+            logger.trackAction('square_click', { row, col, piece, toMove: gameState.currentPuzzle.toMove });
 
             if (gameState.selectedSquare === null) {
-                // First click - select piece
-                if (clickedSquare.textContent) {
-                    gameState.selectedSquare = { row, col };
-                    clickedSquare.classList.add('selected');
+                // First click - select piece (only if it belongs to the player)
+                if (piece) {
+                    const isWhitePiece = piece === piece.toUpperCase();
+                    const isBlackPiece = piece === piece.toLowerCase() && piece !== piece.toUpperCase();
+
+                    // Only allow selecting pieces that match the side to move
+                    if ((isWhiteToMove && isWhitePiece) || (!isWhiteToMove && isBlackPiece)) {
+                        gameState.selectedSquare = { row, col };
+                        const squares = document.querySelectorAll('.square');
+                        const squareIndex = row * 8 + col;
+                        squares[squareIndex].classList.add('selected');
+                        logger.trackAction('piece_selected', { row, col, piece });
+                    } else {
+                        logger.trackAction('wrong_color_selected', { row, col, piece, expected: isWhiteToMove ? 'White' : 'Black' });
+                    }
                 }
             } else {
                 // Second click - attempt move
                 const from = gameState.selectedSquare;
                 const move = squareToAlgebraic(from.row, from.col) + squareToAlgebraic(row, col);
 
+                logger.trackAction('move_attempt', { from, to: {row, col}, move });
+
                 // Clear selection
+                const squares = document.querySelectorAll('.square');
                 squares.forEach(sq => sq.classList.remove('selected'));
                 gameState.selectedSquare = null;
 
