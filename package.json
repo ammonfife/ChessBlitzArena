@@ -1,0 +1,11 @@
+{
+  "name": "chess-blitz-arena",
+  "version": "1.0.0",
+  "description": "Gamified rapid chess improvement tool",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve . -p 3000"
+  },
+  "keywords": ["chess", "puzzles", "gamification", "training"],
+  "license": "MIT"
+}
