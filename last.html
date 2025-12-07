@@ -1,0 +1,2499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Blitz Arena - Rapid Improvement Trainer</title>
+
+    <!-- Chess.js for move validation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+    <!-- Stockfish for AI analysis -->
+    <script src="https://cdn.jsdelivr.net/npm/stockfish@latest/src/stockfish.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
+
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #00cec9;
+            --accent: #fd79a8;
+            --gold: #fdcb6e;
+            --fire: #e17055;
+            --success: #00b894;
+            --dark: #2d3436;
+            --light: #dfe6e9;
+            --xp-bar: linear-gradient(90deg, #6c5ce7, #a29bfe);
+            --streak-fire: linear-gradient(135deg, #ff7675, #fd79a8);
+            --legendary: linear-gradient(135deg, #fdcb6e, #f39c12, #e74c3c);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* Floating particles background */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: rgba(108, 92, 231, 0.3);
+            border-radius: 50%;
+            animation: float 15s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Header */
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 100;
+            border-bottom: 2px solid rgba(108, 92, 231, 0.3);
+        }
+
+        .logo {
+            font-family: 'Fredoka One', cursive;
+            font-size: 28px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(108, 92, 231, 0.5);
+        }
+
+        .logo span {
+            color: var(--gold);
+            -webkit-text-fill-color: var(--gold);
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: 700;
+        }
+
+        .stat-icon {
+            font-size: 20px;
+        }
+
+        .coins {
+            color: var(--gold);
+        }
+
+        .rating {
+            color: var(--secondary);
+        }
+
+        /* Level Progress */
+        .level-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .level-badge {
+            width: 45px;
+            height: 45px;
+            background: var(--xp-bar);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Fredoka One', cursive;
+            font-size: 18px;
+            border: 3px solid var(--gold);
+            box-shadow: 0 0 15px rgba(253, 203, 110, 0.5);
+        }
+
+        .xp-bar-container {
+            width: 150px;
+        }
+
+        .xp-bar-bg {
+            height: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .xp-bar-fill {
+            height: 100%;
+            background: var(--xp-bar);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px rgba(108, 92, 231, 0.5);
+        }
+
+        .xp-text {
+            font-size: 11px;
+            color: var(--light);
+            margin-top: 2px;
+        }
+
+        /* Main Container */
+        .main-container {
+            display: flex;
+            gap: 30px;
+            padding: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Left Panel - Powers & Inventory */
+        .left-panel {
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .panel-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Power-ups */
+        .powers-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .power-btn {
+            background: linear-gradient(135deg, rgba(108, 92, 231, 0.3), rgba(162, 155, 254, 0.2));
+            border: 2px solid rgba(108, 92, 231, 0.5);
+            border-radius: 15px;
+            padding: 15px 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .power-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(108, 92, 231, 0.4);
+            border-color: var(--primary);
+        }
+
+        .power-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .power-icon {
+            font-size: 28px;
+        }
+
+        .power-name {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--light);
+        }
+
+        .power-count {
+            font-size: 10px;
+            color: var(--gold);
+        }
+
+        /* Gloves/Themes */
+        .gloves-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .glove-item {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .glove-item.active {
+            border-color: var(--gold);
+            box-shadow: 0 0 15px rgba(253, 203, 110, 0.5);
+        }
+
+        .glove-item.locked {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .glove-item.locked::after {
+            content: '🔒';
+            position: absolute;
+            font-size: 14px;
+        }
+
+        .glove-item:hover:not(.locked) {
+            transform: scale(1.1);
+        }
+
+        /* Center - Chess Board */
+        .center-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* Streak Display */
+        .streak-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 50px;
+            border: 2px solid transparent;
+        }
+
+        .streak-container.on-fire {
+            border-color: var(--fire);
+            box-shadow: 0 0 30px rgba(225, 112, 85, 0.5);
+            animation: pulse-fire 1s infinite;
+        }
+
+        @keyframes pulse-fire {
+            0%, 100% { box-shadow: 0 0 30px rgba(225, 112, 85, 0.5); }
+            50% { box-shadow: 0 0 50px rgba(225, 112, 85, 0.8); }
+        }
+
+        .streak-flames {
+            font-size: 32px;
+            animation: flame-dance 0.5s infinite alternate;
+        }
+
+        @keyframes flame-dance {
+            from { transform: scale(1) rotate(-5deg); }
+            to { transform: scale(1.1) rotate(5deg); }
+        }
+
+        .streak-count {
+            font-family: 'Fredoka One', cursive;
+            font-size: 36px;
+            color: var(--fire);
+            text-shadow: 0 0 20px rgba(225, 112, 85, 0.5);
+        }
+
+        .streak-label {
+            font-size: 14px;
+            color: var(--light);
+        }
+
+        .streak-bonus {
+            background: var(--streak-fire);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        /* Chess Board */
+        .board-container {
+            position: relative;
+        }
+
+        .chess-board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 4px solid var(--primary);
+        }
+
+        .square {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .square.light {
+            background: #f0d9b5;
+        }
+
+        .square.dark {
+            background: #b58863;
+        }
+
+        /* White pieces - light colored with dark shadow */
+        .square.white-piece {
+            color: #ffffff;
+            text-shadow:
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px 1px 0 #000,
+                1px 1px 0 #000,
+                0 0 8px rgba(255, 255, 255, 0.8);
+            font-weight: bold;
+        }
+
+        /* Black pieces - dark colored with light shadow */
+        .square.black-piece {
+            color: #1a1a1a;
+            text-shadow:
+                -1px -1px 0 #fff,
+                1px -1px 0 #fff,
+                -1px 1px 0 #fff,
+                1px 1px 0 #fff,
+                0 0 8px rgba(0, 0, 0, 0.5);
+            font-weight: bold;
+        }
+
+        .square.selected {
+            box-shadow: inset 0 0 0 4px var(--primary);
+        }
+
+        .square.hint {
+            position: relative;
+        }
+
+        .square.hint::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: rgba(108, 92, 231, 0.5);
+            border-radius: 50%;
+        }
+
+        .square.correct {
+            animation: correct-flash 0.5s ease;
+        }
+
+        @keyframes correct-flash {
+            0%, 100% { background: inherit; }
+            50% { background: var(--success); }
+        }
+
+        .square.wrong {
+            animation: wrong-shake 0.5s ease;
+        }
+
+        @keyframes wrong-shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); background: var(--fire); }
+            75% { transform: translateX(5px); background: var(--fire); }
+        }
+
+        /* Theme variations */
+        .board-container.theme-neon .square.light { background: #1a1a2e; }
+        .board-container.theme-neon .square.dark { background: #0f0f1a; }
+        .board-container.theme-neon .square { color: #00ff88; text-shadow: 0 0 10px #00ff88; }
+
+        .board-container.theme-ice .square.light { background: #e8f4fc; }
+        .board-container.theme-ice .square.dark { background: #a8d4e6; }
+
+        .board-container.theme-fire .square.light { background: #ffeaa7; }
+        .board-container.theme-fire .square.dark { background: #e17055; }
+
+        .board-container.theme-royal .square.light { background: #dfe6e9; }
+        .board-container.theme-royal .square.dark { background: #6c5ce7; }
+
+        /* Puzzle Info */
+        .puzzle-info {
+            text-align: center;
+            max-width: 500px;
+        }
+
+        .puzzle-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .puzzle-instruction {
+            color: var(--light);
+            font-size: 16px;
+        }
+
+        .puzzle-instruction .highlight {
+            color: var(--secondary);
+            font-weight: 700;
+        }
+
+        /* Timer */
+        .timer-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Fredoka One', cursive;
+            font-size: 28px;
+        }
+
+        .timer-icon {
+            font-size: 24px;
+        }
+
+        .timer.warning {
+            color: var(--fire);
+            animation: timer-pulse 0.5s infinite;
+        }
+
+        @keyframes timer-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Right Panel - Progress & Achievements */
+        .right-panel {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Daily Challenge */
+        .daily-challenge {
+            background: linear-gradient(135deg, rgba(253, 203, 110, 0.2), rgba(243, 156, 18, 0.1));
+            border: 2px solid var(--gold);
+        }
+
+        .daily-progress {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .daily-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .daily-dot.complete {
+            background: var(--success);
+        }
+
+        .daily-reward {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        /* Ranking Progress */
+        .rank-display {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .rank-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--legendary);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 5px 20px rgba(253, 203, 110, 0.4);
+        }
+
+        .rank-info {
+            flex: 1;
+        }
+
+        .rank-name {
+            font-family: 'Fredoka One', cursive;
+            font-size: 20px;
+            color: var(--gold);
+        }
+
+        .rank-rating {
+            color: var(--light);
+            font-size: 14px;
+        }
+
+        .rank-progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .rank-progress-fill {
+            height: 100%;
+            background: var(--legendary);
+            transition: width 0.5s ease;
+        }
+
+        .rank-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--light);
+            margin-top: 5px;
+        }
+
+        /* Achievements */
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .achievement {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .achievement.unlocked {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);
+        }
+
+        .achievement.locked {
+            opacity: 0.3;
+            filter: grayscale(1);
+        }
+
+        .achievement:hover {
+            transform: scale(1.1);
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-radius: 30px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            border: 3px solid var(--primary);
+            box-shadow: 0 30px 100px rgba(108, 92, 231, 0.5);
+            animation: modal-pop 0.3s ease;
+        }
+
+        @keyframes modal-pop {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .modal-emoji {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .btn {
+            background: var(--xp-bar);
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-family: 'Fredoka One', cursive;
+            font-size: 18px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(108, 92, 231, 0.5);
+        }
+
+        .btn-gold {
+            background: var(--legendary);
+            color: #1a1a2e;
+        }
+
+        /* Assessment Progress */
+        .assessment-progress {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .assessment-dot {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+
+        .assessment-dot.current {
+            background: var(--primary);
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(108, 92, 231, 0.5);
+        }
+
+        .assessment-dot.correct {
+            background: var(--success);
+        }
+
+        .assessment-dot.wrong {
+            background: var(--fire);
+        }
+
+        /* Confetti */
+        .confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            animation: confetti-fall 3s linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* XP Popup */
+        .xp-popup {
+            position: fixed;
+            font-family: 'Fredoka One', cursive;
+            font-size: 24px;
+            color: var(--gold);
+            pointer-events: none;
+            animation: xp-float 1.5s ease-out forwards;
+            z-index: 100;
+            text-shadow: 0 0 10px rgba(253, 203, 110, 0.8);
+        }
+
+        @keyframes xp-float {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+        }
+
+        /* Level Up Animation */
+        .level-up-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .level-up-overlay.active {
+            display: flex;
+            animation: level-up-bg 2s ease;
+        }
+
+        @keyframes level-up-bg {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .level-up-content {
+            text-align: center;
+            animation: level-up-pop 2s ease;
+        }
+
+        @keyframes level-up-pop {
+            0% { transform: scale(0); }
+            20% { transform: scale(1.2); }
+            40% { transform: scale(1); }
+            100% { transform: scale(1); opacity: 0; }
+        }
+
+        .level-up-text {
+            font-family: 'Fredoka One', cursive;
+            font-size: 60px;
+            background: var(--legendary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: none;
+        }
+
+        .level-up-number {
+            font-family: 'Fredoka One', cursive;
+            font-size: 120px;
+            color: var(--gold);
+            text-shadow: 0 0 50px rgba(253, 203, 110, 0.8);
+        }
+
+        /* Shop Button */
+        .shop-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 70px;
+            height: 70px;
+            background: var(--legendary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(253, 203, 110, 0.5);
+            transition: all 0.3s ease;
+            z-index: 100;
+            border: none;
+        }
+
+        .shop-btn:hover {
+            transform: scale(1.1) rotate(10deg);
+        }
+
+        /* Rating Change Display */
+        .rating-change {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Fredoka One', cursive;
+            font-size: 48px;
+            pointer-events: none;
+            animation: rating-pop 1.5s ease-out forwards;
+            z-index: 500;
+        }
+
+        .rating-change.positive {
+            color: var(--success);
+        }
+
+        .rating-change.negative {
+            color: var(--fire);
+        }
+
+        @keyframes rating-pop {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.5); }
+            100% { transform: translate(-50%, -100%) scale(1); opacity: 0; }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .left-panel, .right-panel {
+                width: 100%;
+                max-width: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">Chess<span>Blitz</span>Arena</div>
+
+        <div class="stats-bar">
+            <div class="stat-item coins">
+                <span class="stat-icon">💰</span>
+                <span id="coins-display">500</span>
+            </div>
+            <div class="stat-item rating">
+                <span class="stat-icon">⚡</span>
+                <span id="rating-display">800</span>
+            </div>
+            <div class="level-container">
+                <div class="level-badge" id="level-badge">1</div>
+                <div class="xp-bar-container">
+                    <div class="xp-bar-bg">
+                        <div class="xp-bar-fill" id="xp-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="xp-text"><span id="xp-current">0</span> / <span id="xp-needed">100</span> XP</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Panel -->
+        <div class="left-panel">
+            <!-- Power-ups -->
+            <div class="panel">
+                <div class="panel-title">⚡ Power-Ups</div>
+                <div class="powers-grid">
+                    <button class="power-btn" id="power-hint" onclick="usePower('hint')">
+                        <span class="power-icon">💡</span>
+                        <span class="power-name">HINT</span>
+                        <span class="power-count" id="hint-count">3</span>
+                    </button>
+                    <button class="power-btn" id="power-freeze" onclick="usePower('freeze')">
+                        <span class="power-icon">❄️</span>
+                        <span class="power-name">FREEZE</span>
+                        <span class="power-count" id="freeze-count">2</span>
+                    </button>
+                    <button class="power-btn" id="power-skip" onclick="usePower('skip')">
+                        <span class="power-icon">⏭️</span>
+                        <span class="power-name">SKIP</span>
+                        <span class="power-count" id="skip-count">1</span>
+                    </button>
+                    <button class="power-btn" id="power-double" onclick="usePower('double')">
+                        <span class="power-icon">✨</span>
+                        <span class="power-name">2X XP</span>
+                        <span class="power-count" id="double-count">1</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Board Themes (Gloves) -->
+            <div class="panel">
+                <div class="panel-title">🎨 Board Skins</div>
+                <div class="gloves-grid">
+                    <div class="glove-item active" data-theme="classic" onclick="selectTheme('classic')">♟️</div>
+                    <div class="glove-item" data-theme="neon" onclick="selectTheme('neon')">💚</div>
+                    <div class="glove-item" data-theme="ice" onclick="selectTheme('ice')">🧊</div>
+                    <div class="glove-item" data-theme="fire" onclick="selectTheme('fire')">🔥</div>
+                    <div class="glove-item" data-theme="royal" onclick="selectTheme('royal')">👑</div>
+                    <div class="glove-item locked" data-theme="galaxy">🌌</div>
+                    <div class="glove-item locked" data-theme="diamond">💎</div>
+                    <div class="glove-item locked" data-theme="rainbow">🌈</div>
+                    <div class="glove-item locked" data-theme="legendary">⭐</div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="panel">
+                <div class="panel-title">📊 Session Stats</div>
+                <div style="display: grid; gap: 10px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Puzzles Solved</span>
+                        <span id="puzzles-solved">0</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Accuracy</span>
+                        <span id="accuracy">0%</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Best Streak</span>
+                        <span id="best-streak">0</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Rating Gained</span>
+                        <span id="rating-gained" style="color: var(--success);">+0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Panel -->
+        <div class="center-panel">
+            <!-- Streak Display -->
+            <div class="streak-container" id="streak-container">
+                <span class="streak-flames" id="streak-flames">🔥</span>
+                <div>
+                    <div class="streak-count" id="streak-count">0</div>
+                    <div class="streak-label">STREAK</div>
+                </div>
+                <div class="streak-bonus" id="streak-bonus">+0% XP</div>
+            </div>
+
+            <!-- Timer -->
+            <div class="timer-container">
+                <span class="timer-icon">⏱️</span>
+                <span class="timer" id="timer">30</span>
+            </div>
+
+            <!-- Chess Board -->
+            <div class="board-container" id="board-container">
+                <div class="chess-board" id="chess-board"></div>
+            </div>
+
+            <!-- Puzzle Info -->
+            <div class="puzzle-info">
+                <div class="puzzle-title" id="puzzle-title">Find the Best Move!</div>
+                <div class="puzzle-instruction" id="puzzle-instruction">
+                    <span class="highlight" id="to-move">White</span> to move. Find the winning tactic!
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <!-- Daily Challenge -->
+            <div class="panel daily-challenge">
+                <div class="panel-title">🎯 Daily Challenge</div>
+                <p style="color: var(--light); font-size: 14px;">Complete 5 puzzles for bonus rewards!</p>
+                <div class="daily-progress">
+                    <div class="daily-dot" id="daily-1">1</div>
+                    <div class="daily-dot" id="daily-2">2</div>
+                    <div class="daily-dot" id="daily-3">3</div>
+                    <div class="daily-dot" id="daily-4">4</div>
+                    <div class="daily-dot" id="daily-5">5</div>
+                </div>
+                <div class="daily-reward">
+                    <span style="color: var(--gold);">🎁 Reward: 500 Coins + Mystery Box</span>
+                </div>
+            </div>
+
+            <!-- Ranking Progress -->
+            <div class="panel">
+                <div class="panel-title">🏆 Your Rank</div>
+                <div class="rank-display">
+                    <div class="rank-icon" id="rank-icon">♟️</div>
+                    <div class="rank-info">
+                        <div class="rank-name" id="rank-name">Beginner</div>
+                        <div class="rank-rating" id="rank-rating-text">Rating: 800</div>
+                    </div>
+                </div>
+                <div class="rank-progress-bar">
+                    <div class="rank-progress-fill" id="rank-progress" style="width: 0%"></div>
+                </div>
+                <div class="rank-labels">
+                    <span id="current-rank-label">Beginner</span>
+                    <span id="next-rank-label">Amateur</span>
+                </div>
+            </div>
+
+            <!-- Achievements -->
+            <div class="panel">
+                <div class="panel-title">🏅 Achievements</div>
+                <div class="achievements-grid">
+                    <div class="achievement unlocked" title="First Puzzle">🎯</div>
+                    <div class="achievement locked" title="5 Streak">🔥</div>
+                    <div class="achievement locked" title="10 Streak">💥</div>
+                    <div class="achievement locked" title="Perfect Session">⭐</div>
+                    <div class="achievement locked" title="Speed Demon">⚡</div>
+                    <div class="achievement locked" title="Reach 1000 Rating">🎖️</div>
+                    <div class="achievement locked" title="Reach 1500 Rating">🏆</div>
+                    <div class="achievement locked" title="Legend">👑</div>
+                </div>
+            </div>
+
+            <!-- Multiplier Info -->
+            <div class="panel" style="background: linear-gradient(135deg, rgba(0, 206, 201, 0.2), rgba(108, 92, 231, 0.1)); border-color: var(--secondary);">
+                <div class="panel-title">🚀 XP Multipliers</div>
+                <div style="font-size: 14px; color: var(--light);">
+                    <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                        <span>Base XP</span>
+                        <span>+25</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                        <span>Streak Bonus (3+)</span>
+                        <span style="color: var(--fire);">+50%</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                        <span>Speed Bonus (&lt;10s)</span>
+                        <span style="color: var(--secondary);">+25%</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                        <span>Daily First Win</span>
+                        <span style="color: var(--gold);">+100%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shop Button -->
+    <button class="shop-btn" onclick="openShop()">🛒</button>
+
+    <!-- Welcome Modal -->
+    <div class="modal-overlay" id="welcome-modal">
+        <div class="modal">
+            <div class="modal-emoji">♟️</div>
+            <div class="modal-title">Welcome to ChessBlitz Arena!</div>
+            <p style="color: var(--light); margin-bottom: 20px;">
+                Solve puzzles, build streaks, and climb the ranks!<br>
+                Let's assess your skill with 10 calibration puzzles.
+            </p>
+            <div class="assessment-progress" id="assessment-progress">
+                <div class="assessment-dot current">1</div>
+                <div class="assessment-dot">2</div>
+                <div class="assessment-dot">3</div>
+                <div class="assessment-dot">4</div>
+                <div class="assessment-dot">5</div>
+                <div class="assessment-dot">6</div>
+                <div class="assessment-dot">7</div>
+                <div class="assessment-dot">8</div>
+                <div class="assessment-dot">9</div>
+                <div class="assessment-dot">10</div>
+            </div>
+            <button class="btn btn-gold" onclick="startAssessment()">START ASSESSMENT</button>
+        </div>
+    </div>
+
+    <!-- Assessment Complete Modal -->
+    <div class="modal-overlay" id="assessment-complete-modal">
+        <div class="modal">
+            <div class="modal-emoji">🎉</div>
+            <div class="modal-title">Assessment Complete!</div>
+            <p style="color: var(--light); margin-bottom: 10px;">Your calibrated rating:</p>
+            <div style="font-family: 'Fredoka One', cursive; font-size: 60px; color: var(--gold);" id="final-rating">800</div>
+            <div style="font-size: 18px; color: var(--secondary); margin-bottom: 20px;" id="final-rank">Beginner</div>
+            <p style="color: var(--light); margin-bottom: 20px;">
+                Score: <span id="assessment-score">0</span>/10<br>
+                You earned <span style="color: var(--gold);" id="assessment-coins">0</span> coins!
+            </p>
+            <button class="btn btn-gold" onclick="startTraining()">START TRAINING</button>
+        </div>
+    </div>
+
+    <!-- Level Up Overlay -->
+    <div class="level-up-overlay" id="level-up-overlay">
+        <div class="level-up-content">
+            <div class="level-up-text">LEVEL UP!</div>
+            <div class="level-up-number" id="new-level">2</div>
+        </div>
+    </div>
+
+    <!-- Confetti Container -->
+    <div class="confetti-container" id="confetti-container"></div>
+
+    <script>
+        // ==================== LOGGING SYSTEM ====================
+        class Logger {
+            constructor() {
+                this.logs = [];
+                this.maxLogs = 500;
+                this.sessionId = this.generateSessionId();
+                this.init();
+            }
+
+            init() {
+                this.log('info', 'ChessBlitz Arena started', { sessionId: this.sessionId, timestamp: new Date().toISOString(), userAgent: navigator.userAgent });
+                this.setupErrorHandlers();
+                this.loadPreviousLogs();
+            }
+
+            generateSessionId() {
+                return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            log(level, message, data = {}) {
+                const logEntry = {
+                    timestamp: new Date().toISOString(),
+                    level,
+                    message,
+                    sessionId: this.sessionId,
+                    ...data
+                };
+
+                this.logs.push(logEntry);
+
+                // Keep only recent logs
+                if (this.logs.length > this.maxLogs) {
+                    this.logs = this.logs.slice(-this.maxLogs);
+                }
+
+                // Console output with color
+                const colors = {
+                    error: 'color: #e74c3c; font-weight: bold;',
+                    warn: 'color: #f39c12;',
+                    info: 'color: #3498db;',
+                    success: 'color: #2ecc71;',
+                    debug: 'color: #95a5a6;'
+                };
+                console.log(`%c[${level.toUpperCase()}] ${message}`, colors[level] || '', data);
+
+                // Save to localStorage
+                this.saveLogs();
+            }
+
+            saveLogs() {
+                try {
+                    localStorage.setItem('chessBlitzLogs', JSON.stringify(this.logs.slice(-100)));
+                } catch (e) {
+                    console.error('Failed to save logs:', e);
+                }
+            }
+
+            loadPreviousLogs() {
+                try {
+                    const saved = localStorage.getItem('chessBlitzLogs');
+                    if (saved) {
+                        const previousLogs = JSON.parse(saved);
+                        this.log('info', `Loaded ${previousLogs.length} previous log entries`);
+                    }
+                } catch (e) {
+                    this.log('error', 'Failed to load previous logs', { error: e.message });
+                }
+            }
+
+            setupErrorHandlers() {
+                // Global error handler
+                window.addEventListener('error', (event) => {
+                    this.log('error', 'Uncaught error', {
+                        message: event.message,
+                        filename: event.filename,
+                        lineno: event.lineno,
+                        colno: event.colno,
+                        error: event.error ? event.error.stack : null
+                    });
+                });
+
+                // Promise rejection handler
+                window.addEventListener('unhandledrejection', (event) => {
+                    this.log('error', 'Unhandled promise rejection', {
+                        reason: event.reason,
+                        promise: event.promise
+                    });
+                });
+
+                // Console override for capturing all console logs
+                const originalConsoleError = console.error;
+                console.error = (...args) => {
+                    this.log('error', 'Console error', { args: args.map(a => String(a)) });
+                    originalConsoleError.apply(console, args);
+                };
+            }
+
+            trackAction(action, details = {}) {
+                this.log('info', `User action: ${action}`, details);
+            }
+
+            trackPuzzle(puzzleData) {
+                this.log('info', 'Puzzle event', puzzleData);
+            }
+
+            trackPerformance(metric, value) {
+                this.log('debug', `Performance: ${metric}`, { value });
+            }
+
+            getLogs(level = null) {
+                if (level) {
+                    return this.logs.filter(log => log.level === level);
+                }
+                return this.logs;
+            }
+
+            exportLogs() {
+                const dataStr = JSON.stringify(this.logs, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `chessblitz-logs-${this.sessionId}.json`;
+                link.click();
+                this.log('info', 'Logs exported');
+            }
+
+            clearLogs() {
+                this.logs = [];
+                localStorage.removeItem('chessBlitzLogs');
+                this.log('info', 'Logs cleared');
+            }
+        }
+
+        // Initialize logger globally
+        const logger = new Logger();
+
+        // Add debug console commands
+        window.chessDebug = {
+            getLogs: () => logger.getLogs(),
+            getErrors: () => logger.getLogs('error'),
+            exportLogs: () => logger.exportLogs(),
+            clearLogs: () => logger.clearLogs(),
+            showStats: () => console.table(gameState)
+        };
+
+        logger.log('info', 'Debug console available: chessDebug.getLogs(), chessDebug.getErrors(), chessDebug.exportLogs()');
+
+        // ==================== AI ENGINE (Stockfish) ====================
+        class AIEngine {
+            constructor() {
+                this.engine = null;
+                this.isReady = false;
+                this.currentAnalysis = null;
+                this.init();
+            }
+
+            init() {
+                try {
+                    if (typeof STOCKFISH === 'function') {
+                        this.engine = STOCKFISH();
+                        this.setupEngine();
+                        logger.log('success', 'Stockfish AI engine initialized');
+                    } else {
+                        logger.log('warn', 'Stockfish not available, AI hints disabled');
+                    }
+                } catch (e) {
+                    logger.log('error', 'Failed to initialize Stockfish', { error: e.message });
+                }
+            }
+
+            setupEngine() {
+                this.engine.onmessage = (event) => {
+                    const line = event.data || event;
+
+                    if (line.includes('readyok')) {
+                        this.isReady = true;
+                        logger.log('info', 'Stockfish engine ready');
+                    }
+
+                    if (line.includes('bestmove')) {
+                        const match = line.match(/bestmove\s+(\S+)/);
+                        if (match) {
+                            this.currentAnalysis = {
+                                bestMove: match[1],
+                                timestamp: Date.now()
+                            };
+                            logger.log('info', 'AI analysis complete', this.currentAnalysis);
+                        }
+                    }
+
+                    // Parse evaluation score
+                    if (line.includes('score cp')) {
+                        const match = line.match(/score cp\s+(-?\d+)/);
+                        if (match && this.currentAnalysis) {
+                            this.currentAnalysis.score = parseInt(match[1]) / 100; // Convert centipawns to pawns
+                        }
+                    }
+                };
+
+                // Initialize engine
+                this.engine.postMessage('uci');
+                this.engine.postMessage('isready');
+            }
+
+            async analyzePosition(fen, depth = 15) {
+                if (!this.engine || !this.isReady) {
+                    logger.log('warn', 'AI engine not ready');
+                    return null;
+                }
+
+                this.currentAnalysis = null;
+
+                // Set position
+                this.engine.postMessage('ucinewgame');
+                this.engine.postMessage(`position fen ${fen}`);
+                this.engine.postMessage(`go depth ${depth}`);
+
+                logger.log('info', 'AI analyzing position...', { fen, depth });
+
+                // Wait for analysis (max 10 seconds)
+                return new Promise((resolve) => {
+                    const startTime = Date.now();
+                    const checkInterval = setInterval(() => {
+                        if (this.currentAnalysis) {
+                            clearInterval(checkInterval);
+                            resolve(this.currentAnalysis);
+                        } else if (Date.now() - startTime > 10000) {
+                            clearInterval(checkInterval);
+                            logger.log('warn', 'AI analysis timeout');
+                            resolve(null);
+                        }
+                    }, 100);
+                });
+            }
+
+            convertMoveToReadable(move) {
+                // Convert UCI move (e2e4) to readable format (e2-e4 or piece name)
+                if (move.length === 4) {
+                    return `${move.slice(0, 2)}-${move.slice(2, 4)}`;
+                }
+                return move;
+            }
+        }
+
+        // Initialize AI engine
+        const aiEngine = new AIEngine();
+
+        // Add AI to debug console
+        window.chessDebug.getAIAnalysis = (fen) => aiEngine.analyzePosition(fen || gameState.currentPuzzle?.fen);
+
+        // ==================== GAME STATE ====================
+        const gameState = {
+            // Player stats
+            coins: 500,
+            rating: 800,
+            level: 1,
+            xp: 0,
+            xpToLevel: 100,
+
+            // Session stats
+            streak: 0,
+            bestStreak: 0,
+            puzzlesSolved: 0,
+            puzzlesAttempted: 0,
+            ratingGained: 0,
+            dailyCompleted: 0,
+
+            // Power-ups
+            powers: {
+                hint: 3,
+                freeze: 2,
+                skip: 1,
+                double: 1
+            },
+
+            // Active effects
+            doubleXpActive: false,
+            timerFrozen: false,
+
+            // Theme
+            currentTheme: 'classic',
+            unlockedThemes: ['classic', 'neon', 'ice', 'fire', 'royal'],
+
+            // Assessment
+            inAssessment: true,
+            assessmentPuzzle: 0,
+            assessmentScore: 0,
+            assessmentResults: [],
+
+            // Current puzzle
+            currentPuzzle: null,
+            selectedSquare: null,
+            timer: 30,
+            timerInterval: null,
+            moveHistory: []
+        };
+
+        // ==================== PUZZLE DATABASE ====================
+        // Puzzles organized by difficulty (rating)
+        const puzzleDatabase = {
+            // 600-800: Very Easy - Basic captures and simple tactics
+            beginner: [
+                {
+                    fen: "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4",
+                    solution: ["h5f7"],
+                    hint: "Look for a checkmate in one!",
+                    title: "Scholar's Mate",
+                    toMove: "White",
+                    rating: 600
+                },
+                {
+                    fen: "rnbqkbnr/ppp2ppp/8/3pp3/4P3/3B4/PPPP1PPP/RNBQK1NR w KQkq - 0 3",
+                    solution: ["d3h7"],
+                    hint: "Attack an undefended piece!",
+                    title: "Free Pawn",
+                    toMove: "White",
+                    rating: 650
+                },
+                {
+                    fen: "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 3",
+                    solution: ["f3g5"],
+                    hint: "Attack f7 with your knight!",
+                    title: "Fried Liver Setup",
+                    toMove: "White",
+                    rating: 700
+                },
+                {
+                    fen: "rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2",
+                    solution: ["d8h4"],
+                    hint: "Check the king!",
+                    title: "Early Queen Attack",
+                    toMove: "Black",
+                    rating: 650
+                },
+                {
+                    fen: "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+                    solution: ["f3e5"],
+                    hint: "Capture the pawn!",
+                    title: "Center Control",
+                    toMove: "White",
+                    rating: 700
+                }
+            ],
+
+            // 800-1000: Easy - Simple tactics, forks, pins
+            easy: [
+                {
+                    fen: "r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+                    solution: ["b5c6"],
+                    hint: "Capture the knight and attack the king!",
+                    title: "Pin and Win",
+                    toMove: "White",
+                    rating: 850
+                },
+                {
+                    fen: "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+                    solution: ["f1b5"],
+                    hint: "Pin the knight to the king!",
+                    title: "Spanish Pin",
+                    toMove: "White",
+                    rating: 800
+                },
+                {
+                    fen: "rnbqkbnr/ppp2ppp/8/3pp3/2B1P3/8/PPPP1PPP/RNBQK1NR w KQkq d6 0 3",
+                    solution: ["c4f7"],
+                    hint: "Attack the weak f7 square!",
+                    title: "f7 Weakness",
+                    toMove: "White",
+                    rating: 900
+                },
+                {
+                    fen: "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQK2R b KQkq - 0 5",
+                    solution: ["c5f2"],
+                    hint: "Attack with your bishop!",
+                    title: "Bishop Attack",
+                    toMove: "Black",
+                    rating: 950
+                },
+                {
+                    fen: "r1bqkbnr/pppp1ppp/2n5/4p3/3PP3/8/PPP2PPP/RNBQKBNR b KQkq d3 0 3",
+                    solution: ["e5d4"],
+                    hint: "Capture the center pawn!",
+                    title: "Center Exchange",
+                    toMove: "Black",
+                    rating: 850
+                }
+            ],
+
+            // 1000-1200: Intermediate - Two-move tactics, discovered attacks
+            intermediate: [
+                {
+                    fen: "r1bqkb1r/pppp1Qpp/2n2n2/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4",
+                    solution: ["e8f7"],
+                    hint: "You must capture the queen!",
+                    title: "Forced Capture",
+                    toMove: "Black",
+                    rating: 1050
+                },
+                {
+                    fen: "rnbqk2r/pppp1ppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+                    solution: ["f3e5"],
+                    hint: "Fork the bishop and f7!",
+                    title: "Knight Fork",
+                    toMove: "White",
+                    rating: 1100
+                },
+                {
+                    fen: "r1bqkbnr/pppp1ppp/2n5/4N3/4P3/8/PPPP1PPP/RNBQKB1R b KQkq - 0 3",
+                    solution: ["c6e5"],
+                    hint: "Capture the attacking knight!",
+                    title: "Piece Recovery",
+                    toMove: "Black",
+                    rating: 1000
+                },
+                {
+                    fen: "rnbqkb1r/ppp2ppp/3p1n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4",
+                    solution: ["f3g5"],
+                    hint: "Attack f7 with a discovered attack setup!",
+                    title: "Ng5 Attack",
+                    toMove: "White",
+                    rating: 1150
+                },
+                {
+                    fen: "r1bqkbnr/1ppp1ppp/p1n5/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4",
+                    solution: ["a4c6"],
+                    hint: "Win the knight with check!",
+                    title: "Bishop Capture",
+                    toMove: "White",
+                    rating: 1100
+                }
+            ],
+
+            // 1200-1400: Advanced - Complex combinations
+            advanced: [
+                {
+                    fen: "r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/3P1N2/PPP2PPP/RNBQ1RK1 w - - 6 6",
+                    solution: ["c1g5"],
+                    hint: "Pin the knight to the queen!",
+                    title: "Powerful Pin",
+                    toMove: "White",
+                    rating: 1250
+                },
+                {
+                    fen: "r1bqk2r/ppp2ppp/2n2n2/2bpp3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R w KQkq - 0 6",
+                    solution: ["e4d5"],
+                    hint: "Open up the center!",
+                    title: "Center Break",
+                    toMove: "White",
+                    rating: 1300
+                },
+                {
+                    fen: "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R b KQkq - 5 4",
+                    solution: ["f6e4"],
+                    hint: "Attack the center!",
+                    title: "Knight Centralization",
+                    toMove: "Black",
+                    rating: 1350
+                },
+                {
+                    fen: "rnbqk2r/pppp1ppp/5n2/2b1p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq - 4 4",
+                    solution: ["f3e5"],
+                    hint: "Attack the center with tempo!",
+                    title: "Aggressive Knight",
+                    toMove: "White",
+                    rating: 1300
+                },
+                {
+                    fen: "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+                    solution: ["g8f6"],
+                    hint: "Develop with attack!",
+                    title: "Two Knights Defense",
+                    toMove: "Black",
+                    rating: 1250
+                }
+            ],
+
+            // 1400+: Expert - Deep tactics
+            expert: [
+                {
+                    fen: "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R b KQkq - 0 5",
+                    solution: ["c5g1"],
+                    hint: "Attack the weak point!",
+                    title: "Diagonal Strike",
+                    toMove: "Black",
+                    rating: 1450
+                },
+                {
+                    fen: "r1bq1rk1/ppp2ppp/2np1n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 0 7",
+                    solution: ["c3d5"],
+                    hint: "Sacrifice for position!",
+                    title: "Knight Sacrifice",
+                    toMove: "White",
+                    rating: 1500
+                },
+                {
+                    fen: "r1bqkb1r/1ppp1ppp/p1n2n2/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4",
+                    solution: ["a4a5"],
+                    hint: "Retreat to safety while keeping pressure!",
+                    title: "Strategic Retreat",
+                    toMove: "White",
+                    rating: 1550
+                },
+                {
+                    fen: "r1bqk2r/ppp2ppp/2n2n2/3pp3/1bP1P3/2N2N2/PP1P1PPP/R1BQKB1R w KQkq - 0 5",
+                    solution: ["e4d5"],
+                    hint: "Open up lines!",
+                    title: "Pawn Break",
+                    toMove: "White",
+                    rating: 1600
+                },
+                {
+                    fen: "rnbqkb1r/pp3ppp/2p2n2/3pp3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 5",
+                    solution: ["e4e5"],
+                    hint: "Push forward!",
+                    title: "Pawn Storm",
+                    toMove: "White",
+                    rating: 1500
+                }
+            ]
+        };
+
+        // ==================== RANK SYSTEM ====================
+        const ranks = [
+            { name: "Beginner", minRating: 0, icon: "♟️", color: "#95a5a6" },
+            { name: "Amateur", minRating: 900, icon: "♞", color: "#3498db" },
+            { name: "Intermediate", minRating: 1100, icon: "♝", color: "#2ecc71" },
+            { name: "Advanced", minRating: 1300, icon: "♜", color: "#9b59b6" },
+            { name: "Expert", minRating: 1500, icon: "♛", color: "#e74c3c" },
+            { name: "Master", minRating: 1700, icon: "♚", color: "#f39c12" },
+            { name: "Grandmaster", minRating: 2000, icon: "👑", color: "#fdcb6e" }
+        ];
+
+        // ==================== ACHIEVEMENTS ====================
+        const achievements = [
+            { id: "first_puzzle", name: "First Puzzle", icon: "🎯", condition: (s) => s.puzzlesSolved >= 1 },
+            { id: "streak_5", name: "5 Streak", icon: "🔥", condition: (s) => s.bestStreak >= 5 },
+            { id: "streak_10", name: "10 Streak", icon: "💥", condition: (s) => s.bestStreak >= 10 },
+            { id: "perfect", name: "Perfect Session", icon: "⭐", condition: (s) => s.puzzlesSolved >= 10 && s.puzzlesAttempted === s.puzzlesSolved },
+            { id: "speed", name: "Speed Demon", icon: "⚡", condition: (s) => false }, // Special trigger
+            { id: "rating_1000", name: "1000 Rating", icon: "🎖️", condition: (s) => s.rating >= 1000 },
+            { id: "rating_1500", name: "1500 Rating", icon: "🏆", condition: (s) => s.rating >= 1500 },
+            { id: "legend", name: "Legend", icon: "👑", condition: (s) => s.rating >= 2000 }
+        ];
+
+        // ==================== INITIALIZATION ====================
+        function init() {
+            createParticles();
+            loadGameState();
+            renderBoard();
+            updateAllDisplays();
+            showWelcomeModal();
+        }
+
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+                particle.style.background = `rgba(${Math.random() > 0.5 ? '108, 92, 231' : '0, 206, 201'}, ${0.2 + Math.random() * 0.3})`;
+                container.appendChild(particle);
+            }
+        }
+
+        function loadGameState() {
+            const saved = localStorage.getItem('chessBlitzState');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                Object.assign(gameState, parsed);
+                gameState.inAssessment = false; // Don't repeat assessment
+            }
+        }
+
+        function saveGameState() {
+            const toSave = {
+                coins: gameState.coins,
+                rating: gameState.rating,
+                level: gameState.level,
+                xp: gameState.xp,
+                xpToLevel: gameState.xpToLevel,
+                bestStreak: gameState.bestStreak,
+                powers: gameState.powers,
+                currentTheme: gameState.currentTheme,
+                unlockedThemes: gameState.unlockedThemes,
+                dailyCompleted: gameState.dailyCompleted
+            };
+            localStorage.setItem('chessBlitzState', JSON.stringify(toSave));
+        }
+
+        // ==================== CHESS BOARD ====================
+        const pieceMap = {
+            'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
+            'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟'
+        };
+
+        function fenToBoard(fen) {
+            const board = [];
+            const rows = fen.split(' ')[0].split('/');
+
+            for (const row of rows) {
+                const boardRow = [];
+                for (const char of row) {
+                    if (isNaN(char)) {
+                        boardRow.push(char);
+                    } else {
+                        for (let i = 0; i < parseInt(char); i++) {
+                            boardRow.push(null);
+                        }
+                    }
+                }
+                board.push(boardRow);
+            }
+            return board;
+        }
+
+        function renderBoard() {
+            const boardElement = document.getElementById('chess-board');
+            boardElement.innerHTML = '';
+
+            if (!gameState.currentPuzzle) {
+                // Show empty board
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const square = document.createElement('div');
+                        square.className = `square ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
+                        boardElement.appendChild(square);
+                    }
+                }
+                return;
+            }
+
+            const board = fenToBoard(gameState.currentPuzzle.fen);
+            const isBlackToMove = gameState.currentPuzzle.toMove === 'Black';
+
+            // Flip board if Black to move (so Black pieces face player)
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const displayRow = isBlackToMove ? row : row;
+                    const displayCol = isBlackToMove ? 7 - col : col;
+                    const actualRow = isBlackToMove ? 7 - row : row;
+
+                    const square = document.createElement('div');
+                    square.className = `square ${(displayRow + displayCol) % 2 === 0 ? 'light' : 'dark'}`;
+                    square.dataset.row = actualRow;
+                    square.dataset.col = displayCol;
+
+                    const piece = board[actualRow][displayCol];
+                    if (piece) {
+                        square.textContent = pieceMap[piece];
+                        // Add color class based on piece case (uppercase = white, lowercase = black)
+                        const isWhitePiece = piece === piece.toUpperCase();
+                        square.classList.add(isWhitePiece ? 'white-piece' : 'black-piece');
+                    }
+
+                    square.addEventListener('click', () => handleSquareClick(actualRow, displayCol));
+                    boardElement.appendChild(square);
+                }
+            }
+        }
+
+        function handleSquareClick(row, col) {
+            if (!gameState.currentPuzzle) return;
+
+            const board = fenToBoard(gameState.currentPuzzle.fen);
+            const piece = board[row][col];
+            const isWhiteToMove = gameState.currentPuzzle.toMove === 'White';
+
+            logger.trackAction('square_click', { row, col, piece, toMove: gameState.currentPuzzle.toMove });
+
+            if (gameState.selectedSquare === null) {
+                // First click - select piece (only if it belongs to the player)
+                if (piece) {
+                    const isWhitePiece = piece === piece.toUpperCase();
+                    const isBlackPiece = piece === piece.toLowerCase() && piece !== piece.toUpperCase();
+
+                    // Only allow selecting pieces that match the side to move
+                    if ((isWhiteToMove && isWhitePiece) || (!isWhiteToMove && isBlackPiece)) {
+                        gameState.selectedSquare = { row, col };
+                        const squares = document.querySelectorAll('.square');
+                        const squareIndex = row * 8 + col;
+                        squares[squareIndex].classList.add('selected');
+                        logger.trackAction('piece_selected', { row, col, piece });
+                    } else {
+                        logger.trackAction('wrong_color_selected', { row, col, piece, expected: isWhiteToMove ? 'White' : 'Black' });
+                    }
+                }
+            } else {
+                // Second click - attempt move
+                const from = gameState.selectedSquare;
+                const move = squareToAlgebraic(from.row, from.col) + squareToAlgebraic(row, col);
+
+                logger.trackAction('move_attempt', { from, to: {row, col}, move });
+
+                // Clear selection
+                const squares = document.querySelectorAll('.square');
+                squares.forEach(sq => sq.classList.remove('selected'));
+                gameState.selectedSquare = null;
+
+                // Check if move is correct
+                checkMove(move, row, col);
+            }
+        }
+
+        function squareToAlgebraic(row, col) {
+            const files = 'abcdefgh';
+            const ranks = '87654321';
+            return files[col] + ranks[row];
+        }
+
+        function checkMove(move, toRow, toCol) {
+            const puzzle = gameState.currentPuzzle;
+            const isCorrect = puzzle.solution.includes(move);
+
+            const squares = document.querySelectorAll('.square');
+            const targetSquare = squares[toRow * 8 + toCol];
+
+            if (isCorrect) {
+                targetSquare.classList.add('correct');
+                setTimeout(() => targetSquare.classList.remove('correct'), 500);
+                handleCorrectAnswer();
+            } else {
+                targetSquare.classList.add('wrong');
+                setTimeout(() => targetSquare.classList.remove('wrong'), 500);
+                handleWrongAnswer();
+            }
+        }
+
+        // ==================== GAME LOGIC ====================
+        function handleCorrectAnswer() {
+            clearInterval(gameState.timerInterval);
+
+            gameState.puzzlesSolved++;
+            gameState.streak++;
+
+            logger.trackAction('puzzle_correct', {
+                puzzle: gameState.currentPuzzle?.title,
+                rating: gameState.currentPuzzle?.rating,
+                streak: gameState.streak,
+                timeLeft: gameState.timer
+            });
+            if (gameState.streak > gameState.bestStreak) {
+                gameState.bestStreak = gameState.streak;
+            }
+
+            // Calculate rewards
+            let xpGained = 25;
+            let coinsGained = 10;
+            let ratingGained = calculateRatingGain();
+
+            // Streak bonus
+            if (gameState.streak >= 3) {
+                xpGained = Math.floor(xpGained * 1.5);
+                coinsGained = Math.floor(coinsGained * 1.3);
+                ratingGained = Math.floor(ratingGained * 1.2);
+            }
+
+            // Speed bonus (solved in under 10 seconds)
+            const timeUsed = 30 - gameState.timer;
+            if (timeUsed < 10) {
+                xpGained = Math.floor(xpGained * 1.25);
+                coinsGained += 5;
+            }
+
+            // Double XP power-up
+            if (gameState.doubleXpActive) {
+                xpGained *= 2;
+                gameState.doubleXpActive = false;
+            }
+
+            // Apply rewards
+            gameState.coins += coinsGained;
+            gameState.rating += ratingGained;
+            gameState.ratingGained += ratingGained;
+            addXP(xpGained);
+
+            // Show XP popup
+            showXPPopup(xpGained);
+            showRatingChange(ratingGained);
+
+            // Update daily progress
+            if (gameState.dailyCompleted < 5) {
+                gameState.dailyCompleted++;
+                updateDailyProgress();
+            }
+
+            // Spawn confetti
+            spawnConfetti();
+
+            // Assessment mode
+            if (gameState.inAssessment) {
+                gameState.assessmentScore++;
+                gameState.assessmentResults.push(true);
+                updateAssessmentProgress();
+
+                if (gameState.assessmentPuzzle >= 10) {
+                    completeAssessment();
+                    return;
+                }
+            }
+
+            // Check achievements
+            checkAchievements();
+
+            updateAllDisplays();
+            saveGameState();
+
+            // Load next puzzle after delay
+            setTimeout(() => loadNextPuzzle(), 1000);
+        }
+
+        function handleWrongAnswer() {
+            gameState.puzzlesAttempted++;
+            gameState.streak = 0;
+
+            logger.trackAction('puzzle_wrong', {
+                puzzle: gameState.currentPuzzle?.title,
+                rating: gameState.currentPuzzle?.rating,
+                timeLeft: gameState.timer
+            });
+
+            // Rating loss (smaller than gain for encouragement)
+            const ratingLoss = Math.floor(calculateRatingGain() * 0.5);
+            gameState.rating = Math.max(100, gameState.rating - ratingLoss);
+            gameState.ratingGained -= ratingLoss;
+
+            showRatingChange(-ratingLoss);
+
+            // Assessment mode
+            if (gameState.inAssessment) {
+                gameState.assessmentResults.push(false);
+                updateAssessmentProgress();
+
+                if (gameState.assessmentPuzzle >= 10) {
+                    completeAssessment();
+                    return;
+                }
+
+                // Move to next puzzle in assessment
+                setTimeout(() => loadNextPuzzle(), 1500);
+            }
+
+            updateAllDisplays();
+            saveGameState();
+        }
+
+        function calculateRatingGain() {
+            // Base rating gain varies by puzzle difficulty
+            const puzzle = gameState.currentPuzzle;
+            if (!puzzle) return 15;
+
+            const diff = puzzle.rating - gameState.rating;
+
+            // More rating for solving harder puzzles
+            if (diff > 200) return 30;
+            if (diff > 100) return 25;
+            if (diff > 0) return 20;
+            if (diff > -100) return 15;
+            return 10;
+        }
+
+        function addXP(amount) {
+            gameState.xp += amount;
+
+            while (gameState.xp >= gameState.xpToLevel) {
+                gameState.xp -= gameState.xpToLevel;
+                gameState.level++;
+                gameState.xpToLevel = Math.floor(gameState.xpToLevel * 1.5);
+
+                // Level up rewards
+                gameState.coins += 100 * gameState.level;
+                gameState.powers.hint++;
+
+                showLevelUp();
+            }
+        }
+
+        // ==================== PUZZLE LOADING ====================
+        function loadNextPuzzle() {
+            if (gameState.inAssessment) {
+                loadAssessmentPuzzle();
+            } else {
+                loadRatedPuzzle();
+            }
+        }
+
+        function loadAssessmentPuzzle() {
+            gameState.assessmentPuzzle++;
+
+            // Progressive difficulty in assessment
+            let pool;
+            if (gameState.assessmentPuzzle <= 2) {
+                pool = puzzleDatabase.beginner;
+            } else if (gameState.assessmentPuzzle <= 4) {
+                pool = puzzleDatabase.easy;
+            } else if (gameState.assessmentPuzzle <= 6) {
+                pool = puzzleDatabase.intermediate;
+            } else if (gameState.assessmentPuzzle <= 8) {
+                pool = puzzleDatabase.advanced;
+            } else {
+                pool = puzzleDatabase.expert;
+            }
+
+            const puzzle = pool[Math.floor(Math.random() * pool.length)];
+            gameState.currentPuzzle = puzzle;
+            gameState.puzzlesAttempted++;
+
+            renderBoard();
+            updatePuzzleInfo();
+            startTimer();
+        }
+
+        function loadRatedPuzzle() {
+            // Select puzzle based on current rating
+            let pool;
+            const rating = gameState.rating;
+
+            if (rating < 800) {
+                pool = puzzleDatabase.beginner;
+            } else if (rating < 1000) {
+                pool = [...puzzleDatabase.beginner, ...puzzleDatabase.easy];
+            } else if (rating < 1200) {
+                pool = [...puzzleDatabase.easy, ...puzzleDatabase.intermediate];
+            } else if (rating < 1400) {
+                pool = [...puzzleDatabase.intermediate, ...puzzleDatabase.advanced];
+            } else {
+                pool = [...puzzleDatabase.advanced, ...puzzleDatabase.expert];
+            }
+
+            const puzzle = pool[Math.floor(Math.random() * pool.length)];
+            gameState.currentPuzzle = puzzle;
+            gameState.puzzlesAttempted++;
+
+            renderBoard();
+            updatePuzzleInfo();
+            startTimer();
+        }
+
+        // ==================== TIMER ====================
+        function startTimer() {
+            gameState.timer = 30;
+            updateTimerDisplay();
+
+            gameState.timerInterval = setInterval(() => {
+                if (gameState.timerFrozen) return;
+
+                gameState.timer--;
+                updateTimerDisplay();
+
+                if (gameState.timer <= 0) {
+                    clearInterval(gameState.timerInterval);
+                    handleWrongAnswer();
+                    setTimeout(() => loadNextPuzzle(), 1500);
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const timerElement = document.getElementById('timer');
+            timerElement.textContent = gameState.timer;
+
+            if (gameState.timer <= 10) {
+                timerElement.classList.add('warning');
+            } else {
+                timerElement.classList.remove('warning');
+            }
+        }
+
+        // ==================== POWER-UPS ====================
+        function usePower(type) {
+            if (gameState.powers[type] <= 0) return;
+            if (!gameState.currentPuzzle) return;
+
+            gameState.powers[type]--;
+            logger.trackAction('power_used', { type, remaining: gameState.powers[type] });
+
+            switch (type) {
+                case 'hint':
+                    showHint();
+                    break;
+                case 'freeze':
+                    freezeTimer();
+                    break;
+                case 'skip':
+                    skipPuzzle();
+                    break;
+                case 'double':
+                    activateDoubleXP();
+                    break;
+            }
+
+            updatePowerDisplays();
+            saveGameState();
+        }
+
+        async function showHint() {
+            const hint = gameState.currentPuzzle.hint;
+            const instructionEl = document.getElementById('puzzle-instruction');
+
+            // Show puzzle hint immediately
+            instructionEl.innerHTML = `<span class="highlight">💡 Hint:</span> ${hint}`;
+
+            // Highlight the target square
+            const solution = gameState.currentPuzzle.solution[0];
+            const toCol = solution.charCodeAt(2) - 97;
+            const toRow = 8 - parseInt(solution[3]);
+
+            const squares = document.querySelectorAll('.square');
+            const targetSquare = squares[toRow * 8 + toCol];
+            targetSquare.classList.add('hint');
+
+            setTimeout(() => targetSquare.classList.remove('hint'), 3000);
+
+            // Get AI analysis
+            instructionEl.innerHTML += `<br><span style="color: var(--secondary);">🤖 AI analyzing...</span>`;
+
+            const analysis = await aiEngine.analyzePosition(gameState.currentPuzzle.fen);
+
+            if (analysis) {
+                const moveReadable = aiEngine.convertMoveToReadable(analysis.bestMove);
+                const scoreText = analysis.score ? ` (${analysis.score > 0 ? '+' : ''}${analysis.score.toFixed(1)})` : '';
+                instructionEl.innerHTML = `<span class="highlight">💡 Hint:</span> ${hint}<br><span style="color: var(--secondary);">🤖 AI suggests: ${moveReadable}${scoreText}</span>`;
+                logger.trackAction('ai_hint_used', { move: analysis.bestMove, score: analysis.score });
+            } else {
+                instructionEl.innerHTML = `<span class="highlight">💡 Hint:</span> ${hint}<br><span style="color: var(--fire);">🤖 AI unavailable</span>`;
+            }
+        }
+
+        function freezeTimer() {
+            gameState.timerFrozen = true;
+            document.getElementById('timer').style.color = '#00cec9';
+
+            setTimeout(() => {
+                gameState.timerFrozen = false;
+                document.getElementById('timer').style.color = '';
+            }, 10000);
+        }
+
+        function skipPuzzle() {
+            clearInterval(gameState.timerInterval);
+            loadNextPuzzle();
+        }
+
+        function activateDoubleXP() {
+            gameState.doubleXpActive = true;
+            // Visual indicator
+            document.getElementById('power-double').style.boxShadow = '0 0 20px var(--gold)';
+        }
+
+        // ==================== THEMES ====================
+        function selectTheme(theme) {
+            if (!gameState.unlockedThemes.includes(theme)) return;
+
+            gameState.currentTheme = theme;
+
+            const boardContainer = document.getElementById('board-container');
+            boardContainer.className = 'board-container';
+            if (theme !== 'classic') {
+                boardContainer.classList.add('theme-' + theme);
+            }
+
+            // Update glove selection
+            document.querySelectorAll('.glove-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.theme === theme) {
+                    item.classList.add('active');
+                }
+            });
+
+            saveGameState();
+        }
+
+        // ==================== DISPLAY UPDATES ====================
+        function updateAllDisplays() {
+            // Header stats
+            document.getElementById('coins-display').textContent = gameState.coins.toLocaleString();
+            document.getElementById('rating-display').textContent = gameState.rating;
+            document.getElementById('level-badge').textContent = gameState.level;
+            document.getElementById('xp-current').textContent = gameState.xp;
+            document.getElementById('xp-needed').textContent = gameState.xpToLevel;
+            document.getElementById('xp-bar').style.width = (gameState.xp / gameState.xpToLevel * 100) + '%';
+
+            // Streak
+            document.getElementById('streak-count').textContent = gameState.streak;
+            const streakBonus = gameState.streak >= 3 ? Math.floor((gameState.streak - 2) * 10) : 0;
+            document.getElementById('streak-bonus').textContent = '+' + streakBonus + '% XP';
+
+            const streakContainer = document.getElementById('streak-container');
+            if (gameState.streak >= 3) {
+                streakContainer.classList.add('on-fire');
+            } else {
+                streakContainer.classList.remove('on-fire');
+            }
+
+            // Session stats
+            document.getElementById('puzzles-solved').textContent = gameState.puzzlesSolved;
+            document.getElementById('accuracy').textContent = gameState.puzzlesAttempted > 0
+                ? Math.round(gameState.puzzlesSolved / gameState.puzzlesAttempted * 100) + '%'
+                : '0%';
+            document.getElementById('best-streak').textContent = gameState.bestStreak;
+            document.getElementById('rating-gained').textContent = (gameState.ratingGained >= 0 ? '+' : '') + gameState.ratingGained;
+
+            // Rank
+            updateRankDisplay();
+
+            // Powers
+            updatePowerDisplays();
+        }
+
+        function updatePowerDisplays() {
+            document.getElementById('hint-count').textContent = gameState.powers.hint;
+            document.getElementById('freeze-count').textContent = gameState.powers.freeze;
+            document.getElementById('skip-count').textContent = gameState.powers.skip;
+            document.getElementById('double-count').textContent = gameState.powers.double;
+
+            // Disable buttons if no uses left
+            document.getElementById('power-hint').disabled = gameState.powers.hint <= 0;
+            document.getElementById('power-freeze').disabled = gameState.powers.freeze <= 0;
+            document.getElementById('power-skip').disabled = gameState.powers.skip <= 0;
+            document.getElementById('power-double').disabled = gameState.powers.double <= 0;
+        }
+
+        function updateRankDisplay() {
+            const rank = getCurrentRank();
+            const nextRank = getNextRank();
+
+            document.getElementById('rank-icon').textContent = rank.icon;
+            document.getElementById('rank-name').textContent = rank.name;
+            document.getElementById('rank-rating-text').textContent = 'Rating: ' + gameState.rating;
+            document.getElementById('current-rank-label').textContent = rank.name;
+
+            if (nextRank) {
+                document.getElementById('next-rank-label').textContent = nextRank.name;
+                const progress = (gameState.rating - rank.minRating) / (nextRank.minRating - rank.minRating) * 100;
+                document.getElementById('rank-progress').style.width = Math.min(100, progress) + '%';
+            } else {
+                document.getElementById('next-rank-label').textContent = 'MAX';
+                document.getElementById('rank-progress').style.width = '100%';
+            }
+        }
+
+        function getCurrentRank() {
+            for (let i = ranks.length - 1; i >= 0; i--) {
+                if (gameState.rating >= ranks[i].minRating) {
+                    return ranks[i];
+                }
+            }
+            return ranks[0];
+        }
+
+        function getNextRank() {
+            for (let i = 0; i < ranks.length; i++) {
+                if (gameState.rating < ranks[i].minRating) {
+                    return ranks[i];
+                }
+            }
+            return null;
+        }
+
+        function updatePuzzleInfo() {
+            const puzzle = gameState.currentPuzzle;
+            if (!puzzle) return;
+
+            document.getElementById('puzzle-title').textContent = puzzle.title;
+            document.getElementById('to-move').textContent = puzzle.toMove;
+            document.getElementById('puzzle-instruction').innerHTML =
+                `<span class="highlight">${puzzle.toMove}</span> to move. Find the winning tactic!`;
+        }
+
+        function updateDailyProgress() {
+            for (let i = 1; i <= 5; i++) {
+                const dot = document.getElementById('daily-' + i);
+                if (i <= gameState.dailyCompleted) {
+                    dot.classList.add('complete');
+                    dot.textContent = '✓';
+                }
+            }
+
+            if (gameState.dailyCompleted >= 5) {
+                // Give daily reward
+                gameState.coins += 500;
+                spawnConfetti();
+            }
+        }
+
+        // ==================== ASSESSMENT ====================
+        function showWelcomeModal() {
+            document.getElementById('welcome-modal').classList.add('active');
+        }
+
+        function startAssessment() {
+            document.getElementById('welcome-modal').classList.remove('active');
+            gameState.inAssessment = true;
+            gameState.assessmentPuzzle = 0;
+            gameState.assessmentScore = 0;
+            gameState.assessmentResults = [];
+            loadNextPuzzle();
+        }
+
+        function updateAssessmentProgress() {
+            const dots = document.querySelectorAll('#assessment-progress .assessment-dot');
+
+            gameState.assessmentResults.forEach((result, index) => {
+                dots[index].classList.remove('current');
+                dots[index].classList.add(result ? 'correct' : 'wrong');
+                dots[index].textContent = result ? '✓' : '✗';
+            });
+
+            if (gameState.assessmentPuzzle < 10) {
+                dots[gameState.assessmentPuzzle].classList.add('current');
+            }
+        }
+
+        function completeAssessment() {
+            clearInterval(gameState.timerInterval);
+            gameState.inAssessment = false;
+
+            // Calculate final rating based on performance
+            const baseRating = 800;
+            const scoreBonus = gameState.assessmentScore * 80; // Up to +800 for perfect
+            const finalRating = baseRating + scoreBonus - (10 - gameState.assessmentScore) * 30;
+
+            gameState.rating = Math.max(600, Math.min(2000, finalRating));
+            gameState.coins += gameState.assessmentScore * 50;
+
+            // Show completion modal
+            document.getElementById('final-rating').textContent = gameState.rating;
+            document.getElementById('final-rank').textContent = getCurrentRank().name;
+            document.getElementById('assessment-score').textContent = gameState.assessmentScore;
+            document.getElementById('assessment-coins').textContent = gameState.assessmentScore * 50;
+
+            document.getElementById('assessment-complete-modal').classList.add('active');
+            spawnConfetti();
+
+            saveGameState();
+        }
+
+        function startTraining() {
+            document.getElementById('assessment-complete-modal').classList.remove('active');
+            updateAllDisplays();
+            loadNextPuzzle();
+        }
+
+        // ==================== VISUAL EFFECTS ====================
+        function showXPPopup(amount) {
+            const popup = document.createElement('div');
+            popup.className = 'xp-popup';
+            popup.textContent = '+' + amount + ' XP';
+            popup.style.left = (Math.random() * 60 + 20) + '%';
+            popup.style.top = '40%';
+            document.body.appendChild(popup);
+
+            setTimeout(() => popup.remove(), 1500);
+        }
+
+        function showRatingChange(amount) {
+            const popup = document.createElement('div');
+            popup.className = 'rating-change ' + (amount >= 0 ? 'positive' : 'negative');
+            popup.textContent = (amount >= 0 ? '+' : '') + amount + ' Rating';
+            document.body.appendChild(popup);
+
+            setTimeout(() => popup.remove(), 1500);
+        }
+
+        function showLevelUp() {
+            const overlay = document.getElementById('level-up-overlay');
+            document.getElementById('new-level').textContent = gameState.level;
+            overlay.classList.add('active');
+            spawnConfetti();
+
+            setTimeout(() => overlay.classList.remove('active'), 2000);
+        }
+
+        function spawnConfetti() {
+            const container = document.getElementById('confetti-container');
+            const colors = ['#6c5ce7', '#00cec9', '#fd79a8', '#fdcb6e', '#e17055', '#00b894'];
+
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                confetti.style.width = (5 + Math.random() * 10) + 'px';
+                confetti.style.height = confetti.style.width;
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                container.appendChild(confetti);
+
+                setTimeout(() => confetti.remove(), 3000);
+            }
+        }
+
+        // ==================== ACHIEVEMENTS ====================
+        function checkAchievements() {
+            const achievementElements = document.querySelectorAll('.achievement');
+
+            achievements.forEach((achievement, index) => {
+                if (achievement.condition(gameState)) {
+                    const element = achievementElements[index];
+                    if (element.classList.contains('locked')) {
+                        element.classList.remove('locked');
+                        element.classList.add('unlocked');
+                        // Could show achievement unlock popup here
+                    }
+                }
+            });
+        }
+
+        // ==================== SHOP ====================
+        function openShop() {
+            alert('🛒 Shop coming soon!\n\nSpend your coins on:\n• More power-ups\n• New board themes\n• Special effects');
+        }
+
+        // ==================== INITIALIZE ====================
+        init();
+    </script>
+</body>
+</html>
