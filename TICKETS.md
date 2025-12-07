@@ -1,6 +1,6 @@
 # ChessBlitz Arena - Issue Tickets
 
-**Last Updated**: 2025-12-07 16:17 UTC
+**Last Updated**: 2025-12-07 23:25 UTC
 
 ---
 
@@ -131,6 +131,140 @@ Set up GitHub Actions for daily automated testing.
 
 ---
 
+### TICKET-009: GitHub Actions CI/CD Pipeline
+**Status**: Open
+**Priority**: Low
+**Discovered**: 2025-12-07 (Infrastructure)
+
+**Description**:
+Create GitHub Actions workflow for automated testing on push/PR.
+
+**Tasks**:
+- Create `.github/workflows/test.yml`
+- Run E2B tests on push to main
+- Run E2B tests on pull requests
+- Report test results as PR comments
+- Badge in README showing test status
+
+**Resources**:
+- GitHub Secrets already configured (E2B_API_KEY, ANTHROPIC_API_KEY)
+- Test script: `e2b/examples/07_chess_blitz_test.py`
+
+---
+
+### TICKET-010: Push Repos to GitHub
+**Status**: Open
+**Priority**: High (P0)
+**Discovered**: 2025-12-07 (Session cleanup)
+
+**Description**:
+Both repos have commits ahead of origin that need to be pushed.
+
+**Repos**:
+- ammonfife/e2b: 5 commits ahead
+- ammonfife/ChessBlitzArena: 4 commits ahead
+
+**Commands**:
+```bash
+cd /Users/benfife/github/ammonfife/e2b && git push origin main
+cd /Users/benfife/github/ammonfife/ChessBlitzArena && git push origin main
+```
+
+---
+
+### TICKET-011: e2b-claude CLI Error Handling
+**Status**: Open
+**Priority**: Low
+**Discovered**: 2025-12-07 (Nice to have)
+
+**Description**:
+Improve error handling and user feedback in e2b-claude CLI tool.
+
+**Improvements**:
+- Better error messages for API failures
+- Retry logic for transient failures
+- Progress indicators during long operations
+- Timeout handling with user-friendly messages
+- Validation of E2B_API_KEY before sandbox creation
+
+**File**: `/Users/benfife/github/ammonfife/e2b/e2b_claude_cli.py`
+
+---
+
+### TICKET-012: CLI Tool Testing Suite
+**Status**: Open
+**Priority**: Low
+**Discovered**: 2025-12-07 (Nice to have)
+
+**Description**:
+Create test suite for e2b-claude CLI tool.
+
+**Tests needed**:
+- Unit tests for sandbox creation
+- Integration tests for full workflow
+- Mock E2B API for faster testing
+- Test error scenarios
+- Test result collection
+
+**Location**: `e2b/tests/test_e2b_claude_cli.py` (new)
+
+---
+
+### TICKET-013: Redis Monitoring Dashboard
+**Status**: Open
+**Priority**: Low
+**Discovered**: 2025-12-07 (Nice to have)
+
+**Description**:
+Create web dashboard for monitoring Redis queues and agent status.
+
+**Features**:
+- View all open tickets
+- See agent status updates
+- Monitor task queues
+- Search historical data
+- Real-time updates
+
+**Tech**: Simple Flask app or static HTML + Redis REST API
+
+---
+
+### TICKET-014: Session Resumability Documentation
+**Status**: Open
+**Priority**: Low
+**Discovered**: 2025-12-07 (Nice to have)
+
+**Description**:
+Document how to resume sessions and use resumable session files.
+
+**Needs**:
+- Guide for creating resumable session files
+- Examples of session resumption
+- Redis integration for session discovery
+- Best practices for session handoffs
+
+**Reference**: `SESSION_2025-12-07_E2B_TESTING.md`
+
+---
+
+### TICKET-015: E2B Template Optimization
+**Status**: Open
+**Priority**: Low
+**Discovered**: 2025-12-07 (Nice to have)
+
+**Description**:
+Create custom E2B template with pre-installed tools to speed up sandbox creation.
+
+**Pre-install**:
+- Chromium + ChromeDriver
+- Playwright + browsers
+- Claude CLI
+- Common Python packages
+
+**Benefit**: Reduce sandbox setup time from ~60s to ~10s
+
+---
+
 ## Completed
 
 ### ✅ TICKET-007: UX Requirements Documentation
@@ -149,4 +283,27 @@ Created 4 E2B test scripts with Playwright automation.
 
 ---
 
-**Ticket Count**: Open: 6 | Closed: 2 | Total: 8
+**Ticket Count**: Open: 13 | Closed: 2 | Total: 15
+
+---
+
+## Ticket Summary by Priority
+
+**High Priority (P0-P1)**: 3 tickets
+- TICKET-001: Stockfish AI initialization
+- TICKET-002: Piece selection CSS
+- TICKET-010: Push repos to GitHub
+
+**Medium Priority**: 2 tickets
+- TICKET-003: DNS verification
+- TICKET-004: Mobile testing
+
+**Low Priority**: 8 tickets
+- TICKET-005: Performance benchmarking
+- TICKET-006: Automated daily testing
+- TICKET-009: GitHub Actions CI/CD
+- TICKET-011: CLI error handling
+- TICKET-012: CLI testing suite
+- TICKET-013: Redis monitoring
+- TICKET-014: Session resumability docs
+- TICKET-015: E2B template optimization
