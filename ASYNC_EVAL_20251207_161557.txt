@@ -1,0 +1,41 @@
+ChessBlitz Arena - Async UX Evaluation
+======================================================================
+
+Started: 2025-12-07T16:15:57.901739
+Sandbox ID: izn0mohicq43j5szj283w
+Expected completion: ~5 minutes from start
+
+CHECKING RESULTS:
+======================================================================
+
+Option 1 - Python script:
+```python
+from e2b_code_interpreter import Sandbox
+sandbox = Sandbox.connect('izn0mohicq43j5szj283w')
+# Check if done
+summary = sandbox.commands.run('cat /home/user/EVALUATION_SUMMARY.txt')
+print(summary.stdout)
+# Get report
+result = sandbox.commands.run('ls -la /home/user/UX_EVALUATION_REPORT_*.md')
+print(result.stdout)
+# Download report
+report_bytes = sandbox.files.read('/home/user/UX_EVALUATION_REPORT_<timestamp>.md')
+with open('UX_EVALUATION_REPORT.md', 'wb') as f:
+    f.write(report_bytes)
+sandbox.kill()
+```
+
+Option 2 - Check log:
+```python
+from e2b_code_interpreter import Sandbox
+sandbox = Sandbox.connect('izn0mohicq43j5szj283w')
+log = sandbox.commands.run('tail -100 /home/user/evaluation.log')
+print(log.stdout)
+sandbox.kill()
+```
+
+Files to retrieve:
+- /home/user/UX_EVALUATION_REPORT_*.md (main report)
+- /home/user/EVALUATION_SUMMARY.txt (status)
+- /home/user/evaluation.log (full log)
+- /home/user/screenshot_*.png (screenshots)
