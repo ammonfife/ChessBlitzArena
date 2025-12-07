@@ -1,235 +1,152 @@
 # ChessBlitz Arena - Issue Tickets
 
-**Last Updated**: 2025-12-07 23:00 UTC
-**Created By**: Garcia PM
-**Source**: E2B Testing Session (SESSION_2025-12-07_E2B_TESTING.md)
+**Last Updated**: 2025-12-07 16:17 UTC
 
 ---
 
-## Open Tickets
+## High Priority
 
-### TICKET-001: Fix Stockfish AI Engine Initialization Timing
-**Status**: 🔴 Open
+### TICKET-001: Stockfish AI Engine Initialization Timing
+**Status**: Open
 **Priority**: High
-**Created**: 2025-12-07 23:00 UTC
-**Discovered**: E2B automated testing
-**Affects**: Live site (chess.genomicdigital.com)
+**Discovered**: 2025-12-07 (E2B testing)
+**Severity**: Major - Feature not working on initial load
 
-**Issue**:
-Stockfish.js AI engine not initializing during page load. Test reports `ready=False`, `hasEngine=False`.
-
-**Impact**:
-- AI hints may not work immediately on page load
-- Users may click hint button and get no response
-- Degrades UX for first puzzle attempt
-
-**Root Cause**:
-Likely CDN loading timing or async initialization delay
+**Description**:
+Stockfish AI engine shows `ready=False` and `hasEngine=False` during initial page load. This prevents the hint system from working immediately when users start the assessment.
 
 **Location**:
 - File: `index.html`
 - Lines: 1328-1423 (AIEngine class)
-- Function: `AIEngine.init()`
 
-**Evidence**:
-```javascript
-// E2B test output
-ai_status = page.evaluate("() => ({ready: aiEngine.isReady, hasEngine: !!aiEngine.engine})")
-// Result: {ready: false, hasEngine: false}
-```
+**Current Behavior**:
+- Engine status checked too early
+- CDN loading may be slow
+- No retry mechanism
 
-**Proposed Solutions**:
-1. Add loading timeout/retry logic to AIEngine.init()
-2. Check Stockfish.js CDN availability and reliability
-3. Consider self-hosting stockfish.js instead of CDN
-4. Add loading state indicator to UI
-5. Queue hint requests until engine ready
+**Expected Behavior**:
+- AI engine should be ready within 5 seconds of page load
+- Hint button should be disabled until engine ready
+- Visual indicator showing "AI Loading..." state
 
-**Test Case**:
-```python
-# Should pass after fix
-ai_status = page.evaluate("() => aiEngine.isReady")
-assert ai_status == True, "AI engine should be ready after page load"
-```
+**Reproduction**:
+1. Load https://ammonfife.github.io/ChessBlitzArena/
+2. Click "START ASSESSMENT"
+3. Immediately click hint button
+4. Result: Engine not ready, hints don't work
+
+**Test Evidence**:
+- E2B Test (Sandbox: i3px2h0osbpcs71cxdqub)
+- Test date: 2025-12-07 22:51 UTC
+- Result: `aiEngine.isReady = false`, `aiEngine.engine = null`
 
 **Related Files**:
-- `index.html:1328-1423`
-- Test: `e2b/examples/07_chess_blitz_test.py:136-141`
-
-**Acceptance Criteria**:
-- [ ] AI engine initializes within 5 seconds of page load
-- [ ] E2B test passes AI engine check
-- [ ] Hint button works on first click
-- [ ] Error handling if CDN fails
+- `index.html:1328-1423` (AIEngine class)
+- `index.html:1807-1850` (showHint function)
 
 ---
 
-### TICKET-002: Fix Piece Selection CSS Visual Feedback
-**Status**: 🔴 Open
-**Priority**: Medium
-**Created**: 2025-12-07 23:00 UTC
-**Discovered**: E2B automated testing
-**Affects**: Live site (chess.genomicdigital.com)
+### TICKET-002: Piece Selection Visual Feedback Missing
+**Status**: Open
+**Priority**: High
+**Discovered**: 2025-12-07 (E2B testing)
+**Severity**: Major - UX requirement violation
 
-**Issue**:
-Click events register on chess pieces but `.selected` CSS class not applied. No visual feedback when piece clicked.
-
-**Impact**:
-- Users don't see which piece they selected
-- Confusion about whether click registered
-- Poor UX during puzzle solving
-
-**Root Cause**:
-JavaScript click handler fires but CSS class application failing
+**Description**:
+When a piece is clicked, the click event is registered but the `.selected` CSS class is not being applied. Users get no visual confirmation that they've selected a piece.
 
 **Location**:
 - File: `index.html`
 - Lines: 1706-1747 (handleSquareClick function)
-- CSS: Lines 410-417 (.square.selected styles)
+- Lines: 410-417 (CSS .square.selected)
 
-**Evidence**:
-```python
-# E2B test output
-clickable_piece.click()  # Click succeeds
-selected = page.locator('.square.selected')
-assert selected.count() == 0  # CSS class NOT applied
-```
+**Current Behavior**:
+- `handleSquareClick` is called
+- `gameState.selectedSquare` is set
+- No visual change on the board
+- `.selected` class not applied to DOM element
 
-**CSS Definition**:
-```css
-.square.selected {
-  box-shadow: 0 0 0 3px #ffd700 inset;
-  background-color: rgba(255, 215, 0, 0.2);
-}
-```
+**Expected Behavior**:
+- Immediate visual feedback (< 100ms) when piece clicked
+- Selected square should have yellow border/background
+- Legal moves should be highlighted
+- Deselect on second click or clicking empty square
 
-**Proposed Solutions**:
-1. Debug CSS specificity conflicts
-2. Verify JavaScript adds class correctly (`element.classList.add('selected')`)
-3. Check if other CSS overriding .selected styles
-4. Test in different browsers (Chrome, Firefox, Safari)
-5. Add console.log to verify class application
+**Reproduction**:
+1. Load site and start assessment
+2. Click any white piece
+3. Observe: No visual change on clicked square
+4. Check DevTools: `.selected` class not in DOM
 
-**Test Case**:
-```python
-# Should pass after fix
-piece = page.locator('.square.white-piece').first
-piece.click()
-time.sleep(0.5)
-selected = page.locator('.square.selected')
-assert selected.count() > 0, "Selected piece should have .selected class"
-```
+**Test Evidence**:
+- E2B Test (Sandbox: i3px2h0osbpcs71cxdqub)
+- Test date: 2025-12-07 22:51 UTC
+- Result: "Piece not selected" despite click registered
 
-**Related Files**:
-- `index.html:1706-1747` (handleSquareClick)
-- `index.html:410-417` (CSS)
-- Test: `e2b/examples/07_chess_blitz_test.py:102-113`
-
-**Acceptance Criteria**:
-- [ ] Clicking piece applies .selected class
-- [ ] Visual highlight appears (gold box-shadow)
-- [ ] E2B test passes piece selection check
-- [ ] Works across Chrome, Firefox, Safari
+**UX Requirements**:
+- Violates: "Piece selection: Immediate visual feedback (< 50ms)"
+- Reference: UserExperienceRequirements.md
 
 ---
 
-### TICKET-003: Document and Validate E2B Testing Infrastructure
-**Status**: 🟡 In Progress
+## Medium Priority
+
+### TICKET-003: Custom Domain DNS Verification
+**Status**: Open
+**Priority**: Medium
+**Discovered**: 2025-12-07 (E2B testing)
+
+**Description**:
+Custom domain chess.genomicdigital.com configured but needs verification.
+
+---
+
+### TICKET-004: Mobile Responsiveness Testing
+**Status**: Open
+**Priority**: Medium
+**Discovered**: 2025-12-07 (Planning)
+
+**Description**:
+Mobile responsiveness needs testing with real devices (iOS, Android, tablets).
+
+---
+
+## Low Priority
+
+### TICKET-005: Performance Benchmarking
+**Status**: Open
 **Priority**: Low
-**Created**: 2025-12-07 23:00 UTC
-**Assignee**: Garcia PM
 
-**Issue**:
-E2B testing setup complete but needs documentation for other agents to use and maintain.
-
-**Completed**:
-- [x] Test script created: `e2b/examples/07_chess_blitz_test.py`
-- [x] Session documented: `SESSION_2025-12-07_E2B_TESTING.md`
-- [x] Added to examples README
-- [x] Redis integration working
-
-**Remaining Work**:
-- [ ] Add to CI/CD pipeline (GitHub Actions)
-- [ ] Schedule daily automated tests
-- [ ] Create test result dashboard
-- [ ] Document how to extend tests
-- [ ] Add performance benchmarks
-
-**Related Files**:
-- `e2b/examples/07_chess_blitz_test.py`
-- `SESSION_2025-12-07_E2B_TESTING.md`
-- `e2b/examples/README.md`
-
-**Acceptance Criteria**:
-- [ ] Tests run automatically daily
-- [ ] Test failures alert team
-- [ ] Other agents can add new tests
-- [ ] Results tracked over time
+**Description**:
+Need comprehensive performance benchmarking (FCP, TTI, Lighthouse, 60fps).
 
 ---
 
-## Closed Tickets
+### TICKET-006: Automated Daily Testing
+**Status**: Open
+**Priority**: Low
 
-### TICKET-000: Make ChessBlitzArena Repository Private
-**Status**: ✅ Closed
-**Priority**: Critical
-**Created**: 2025-12-07 22:55 UTC
-**Closed**: 2025-12-07 22:58 UTC
-**Resolution**: Completed
-
-**Issue**: Repository was PUBLIC, needed to be PRIVATE for security.
-
-**Actions Taken**:
-- Changed visibility: PUBLIC → PRIVATE
-- Enhanced .gitignore with auth/credential patterns
-- Verified no sensitive data in git history
-
-**Commit**: 5e1d120
+**Description**:
+Set up GitHub Actions for daily automated testing.
 
 ---
 
-## Ticket Priority Legend
+## Completed
 
-- 🔴 **High**: Affects core functionality or user experience
-- 🟡 **Medium**: Important but not blocking
-- 🟢 **Low**: Nice to have, future improvement
-- 🔵 **Info**: Documentation or investigation needed
+### ✅ TICKET-007: UX Requirements Documentation
+**Status**: Closed
+**Completed**: 2025-12-07
 
-## Ticket Status
-
-- **Open**: Needs work
-- **In Progress**: Being worked on
-- **Blocked**: Waiting on dependency
-- **Closed**: Completed
-
-## How to Claim a Ticket
-
-1. Update status to "In Progress"
-2. Add your agent name as assignee
-3. Log to Redis: `ai:tickets:claimed:[ticket_id]`
-4. Update this file when complete
-
-## Redis Keys
-
-All tickets synced to Redis for agent access:
-
-```bash
-# Ticket list
-redis-cli -p 6379 LRANGE "chess_blitz:tickets:open" 0 -1
-
-# Individual ticket
-redis-cli -p 6379 GET "chess_blitz:ticket:001"
-redis-cli -p 6379 GET "chess_blitz:ticket:002"
-redis-cli -p 6379 GET "chess_blitz:ticket:003"
-```
-
-## Related Documentation
-
-- [SESSION_2025-12-07_E2B_TESTING.md](SESSION_2025-12-07_E2B_TESTING.md) - Full testing session
-- [TEST_RESULTS_SUMMARY.md](TEST_RESULTS_SUMMARY.md) - Test results
-- [TESTING_GUIDE.md](TESTING_GUIDE.md) - How to run tests
-- [e2b/examples/07_chess_blitz_test.py](../e2b/examples/07_chess_blitz_test.py) - Test script
+Created UserExperienceRequirements.md (388 lines, 14 sections).
 
 ---
 
-**For Updates**: Edit this file and commit, or use Redis commands to update ticket status
+### ✅ TICKET-008: E2B Testing Infrastructure
+**Status**: Closed
+**Completed**: 2025-12-07
+
+Created 4 E2B test scripts with Playwright automation.
+
+---
+
+**Ticket Count**: Open: 6 | Closed: 2 | Total: 8
