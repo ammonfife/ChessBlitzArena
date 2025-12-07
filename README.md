@@ -62,12 +62,50 @@ chessDebug.showStats()         // View game state
 chessDebug.getAIAnalysis()     // Get AI analysis for current position
 ```
 
+## Documentation
+
+### For Users
+- **[UserExperienceRequirements.md](UserExperienceRequirements.md)** - Complete UX specifications and requirements
+- **[TESTING_STATUS.md](TESTING_STATUS.md)** - Current testing status and results
+
+### For Developers
+- **[QUICKSTART.md](QUICKSTART.md)** - Get started in 2 minutes
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Comprehensive development guide
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Deployment and release process
+- **[API.md](API.md)** - JavaScript API reference
+- **[TICKETS.md](TICKETS.md)** - Issue tracker and roadmap (25 tickets)
+
+### Session Notes
+- **[SESSION_2025-12-07_E2B_TESTING.md](SESSION_2025-12-07_E2B_TESTING.md)** - E2B testing infrastructure setup
+- **[ASYNC_EVAL_*.txt](ASYNC_EVAL_20251207_161557.txt)** - Async UX evaluation instructions
+
+## Testing
+
+### Automated Tests
+```bash
+# Run basic functionality tests
+cd ../e2b
+python examples/07_chess_blitz_test.py
+
+# Run async UX evaluation (recommended)
+python examples/10_chess_ux_async.py
+```
+
+### Manual Testing
+- Open `index.html` in browser
+- Follow checklist in [DEVELOPMENT.md](DEVELOPMENT.md#manual-testing-checklist)
+- Use `chessDebug.*` methods in browser console
+
 ## Contributing
 
-1. Archive current version: `./archive-version.sh v1.x.x`
-2. Make changes to `index.html`
-3. Test locally
-4. Commit and push
-5. Previous version always available at `/last`
+1. Read [DEVELOPMENT.md](DEVELOPMENT.md) for detailed guidelines
+2. Check [TICKETS.md](TICKETS.md) for open issues
+3. Archive current version: `./archive-version.sh v1.x.x`
+4. Make changes to `index.html`
+5. Test locally (manual + automated)
+6. Commit and push
+7. Previous version always available at `/last`
+
+## License
 
 MIT License

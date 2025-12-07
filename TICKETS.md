@@ -283,7 +283,219 @@ Created 4 E2B test scripts with Playwright automation.
 
 ---
 
-**Ticket Count**: Open: 13 | Closed: 2 | Total: 15
+### TICKET-016: Board Skins Unlock Verification
+**Status**: Open
+**Priority**: Low
+**Discovered**: 2025-12-07 (Feature verification)
+
+**Description**:
+Verify that board skins unlock properly at designated levels and can be applied.
+
+**Test Cases**:
+- Reach level 5, verify new skin unlocks
+- Apply unlocked skin, verify board updates
+- Locked skins show preview but can't be applied
+- Skin persists after page refresh
+
+---
+
+### TICKET-017: Achievement System Testing
+**Status**: Open
+**Priority**: Low
+**Discovered**: 2025-12-07 (Feature verification)
+
+**Description**:
+Test all 8 achievements can be earned and display correctly.
+
+**Achievements to verify**:
+- First puzzle solved
+- 10 puzzles streak
+- Level 10 reached
+- 100 puzzles completed
+- Perfect day (5/5 puzzles correct)
+- Speed demon (puzzle in < 10s)
+- Comeback (3 streak after 3 fails)
+- Perfectionist (95% accuracy)
+
+---
+
+### TICKET-018: Sound Effects Implementation
+**Status**: Open
+**Priority**: Low
+**Discovered**: 2025-12-07 (Nice to have)
+
+**Description**:
+Add optional sound effects for enhanced Roblox-style feel.
+
+**Sounds needed**:
+- Correct move (success chime)
+- Wrong move (error sound)
+- Level up (celebration)
+- Streak milestone (powerup sound)
+- Button clicks (subtle)
+- Achievement earned (fanfare)
+
+**Implementation**:
+- Mute toggle in settings
+- LocalStorage persistence
+- Lightweight audio files (<50KB each)
+
+---
+
+### TICKET-019: Tutorial/Onboarding Flow
+**Status**: Open
+**Priority**: Medium
+**Discovered**: 2025-12-07 (UX improvement)
+
+**Description**:
+Add optional first-time user tutorial explaining game mechanics.
+
+**Tutorial steps**:
+1. Welcome + explanation of assessment
+2. How to move pieces
+3. Power-ups explanation
+4. XP/leveling system
+5. Daily challenges intro
+
+**Requirements**:
+- Skippable
+- Show once (LocalStorage flag)
+- Reset option in settings
+- < 30 seconds if not skipped
+
+---
+
+### TICKET-020: Analytics Integration
+**Status**: Open
+**Priority**: Low
+**Discovered**: 2025-12-07 (Growth tracking)
+
+**Description**:
+Add privacy-friendly analytics to track usage and optimize UX.
+
+**Metrics to track**:
+- Page views
+- Assessment completion rate
+- Average puzzles per session
+- Bounce rate
+- Time to first puzzle
+- Power-up usage rates
+- Most used board skins
+
+**Privacy**:
+- No personal data
+- Respect Do Not Track
+- Cookie consent banner
+- GDPR compliant
+
+**Options**: Plausible, Simple Analytics, or custom
+
+---
+
+### TICKET-021: SEO Optimization
+**Status**: Open
+**Priority**: Medium
+**Discovered**: 2025-12-07 (Discoverability)
+
+**Description**:
+Optimize for search engines to increase organic discovery.
+
+**Tasks**:
+- Add meta descriptions
+- Open Graph tags for social sharing
+- Structured data (Schema.org)
+- robots.txt
+- sitemap.xml
+- Performance optimization (Lighthouse 90+)
+- Mobile-friendly verification
+
+---
+
+### TICKET-022: Social Sharing Features
+**Status**: Open
+**Priority**: Low
+**Discovered**: 2025-12-07 (Viral growth)
+
+**Description**:
+Allow users to share achievements and progress on social media.
+
+**Shareable content**:
+- "I just reached level X in ChessBlitz Arena!"
+- "Got a 10-puzzle streak!"
+- "Unlocked the [skin name] board skin"
+- Current rating + tier badge
+
+**Platforms**:
+- Twitter/X (with image)
+- LinkedIn
+- Discord (webhook)
+- Copy link
+
+---
+
+### TICKET-023: Leaderboard System
+**Status**: Open
+**Priority**: Low
+**Discovered**: 2025-12-07 (Competitive feature)
+
+**Description**:
+Add global and friends leaderboards for competitive engagement.
+
+**Requirements**:
+- Anonymous by default
+- Optional display name
+- Filter by timeframe (daily, weekly, all-time)
+- Categories: Rating, XP, Streak, Speed
+- Real-time updates
+- Backend needed (Firebase/Supabase)
+
+---
+
+### TICKET-024: Puzzle Generator Integration
+**Status**: Open
+**Priority**: Medium
+**Discovered**: 2025-12-07 (Content scalability)
+
+**Description**:
+Currently using static puzzle set. Need dynamic puzzle generation or API integration.
+
+**Options**:
+- Lichess puzzle API (free)
+- Chess.com puzzle API
+- Custom generator using Stockfish
+- Community submissions
+
+**Benefits**:
+- Unlimited puzzles
+- Always fresh content
+- Difficulty calibration
+- No repetition
+
+---
+
+### TICKET-025: Offline Mode Support
+**Status**: Open
+**Priority**: Low
+**Discovered**: 2025-12-07 (PWA feature)
+
+**Description**:
+Add Service Worker for offline functionality and PWA installation.
+
+**Features**:
+- Cache HTML/CSS/JS
+- Cache puzzle data
+- Work offline after first load
+- Install as app (PWA)
+- Background sync when online
+
+**Benefits**:
+- Better mobile experience
+- Faster load times
+- Engagement boost
+
+---
+
+**Ticket Count**: Open: 23 | Closed: 2 | Total: 25
 
 ---
 
