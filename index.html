@@ -384,6 +384,30 @@
             background: #b58863;
         }
 
+        /* White pieces - light colored with dark shadow */
+        .square.white-piece {
+            color: #ffffff;
+            text-shadow:
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px 1px 0 #000,
+                1px 1px 0 #000,
+                0 0 8px rgba(255, 255, 255, 0.8);
+            font-weight: bold;
+        }
+
+        /* Black pieces - dark colored with light shadow */
+        .square.black-piece {
+            color: #1a1a1a;
+            text-shadow:
+                -1px -1px 0 #fff,
+                1px -1px 0 #fff,
+                -1px 1px 0 #fff,
+                1px 1px 0 #fff,
+                0 0 8px rgba(0, 0, 0, 0.5);
+            font-weight: bold;
+        }
+
         .square.selected {
             box-shadow: inset 0 0 0 4px var(--primary);
         }
@@ -1695,6 +1719,9 @@
                     const piece = board[actualRow][displayCol];
                     if (piece) {
                         square.textContent = pieceMap[piece];
+                        // Add color class based on piece case (uppercase = white, lowercase = black)
+                        const isWhitePiece = piece === piece.toUpperCase();
+                        square.classList.add(isWhitePiece ? 'white-piece' : 'black-piece');
                     }
 
                     square.addEventListener('click', () => handleSquareClick(actualRow, displayCol));
