@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chess Blitz Arena - Rapid Improvement Trainer</title>
+
+    <!-- Chess.js for move validation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+    <!-- Stockfish for AI analysis -->
+    <script src="https://cdn.jsdelivr.net/npm/stockfish@latest/src/stockfish.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
 
@@ -1318,6 +1325,109 @@
 
         logger.log('info', 'Debug console available: chessDebug.getLogs(), chessDebug.getErrors(), chessDebug.exportLogs()');
 
+        // ==================== AI ENGINE (Stockfish) ====================
+        class AIEngine {
+            constructor() {
+                this.engine = null;
+                this.isReady = false;
+                this.currentAnalysis = null;
+                this.init();
+            }
+
+            init() {
+                try {
+                    if (typeof STOCKFISH === 'function') {
+                        this.engine = STOCKFISH();
+                        this.setupEngine();
+                        logger.log('success', 'Stockfish AI engine initialized');
+                    } else {
+                        logger.log('warn', 'Stockfish not available, AI hints disabled');
+                    }
+                } catch (e) {
+                    logger.log('error', 'Failed to initialize Stockfish', { error: e.message });
+                }
+            }
+
+            setupEngine() {
+                this.engine.onmessage = (event) => {
+                    const line = event.data || event;
+
+                    if (line.includes('readyok')) {
+                        this.isReady = true;
+                        logger.log('info', 'Stockfish engine ready');
+                    }
+
+                    if (line.includes('bestmove')) {
+                        const match = line.match(/bestmove\s+(\S+)/);
+                        if (match) {
+                            this.currentAnalysis = {
+                                bestMove: match[1],
+                                timestamp: Date.now()
+                            };
+                            logger.log('info', 'AI analysis complete', this.currentAnalysis);
+                        }
+                    }
+
+                    // Parse evaluation score
+                    if (line.includes('score cp')) {
+                        const match = line.match(/score cp\s+(-?\d+)/);
+                        if (match && this.currentAnalysis) {
+                            this.currentAnalysis.score = parseInt(match[1]) / 100; // Convert centipawns to pawns
+                        }
+                    }
+                };
+
+                // Initialize engine
+                this.engine.postMessage('uci');
+                this.engine.postMessage('isready');
+            }
+
+            async analyzePosition(fen, depth = 15) {
+                if (!this.engine || !this.isReady) {
+                    logger.log('warn', 'AI engine not ready');
+                    return null;
+                }
+
+                this.currentAnalysis = null;
+
+                // Set position
+                this.engine.postMessage('ucinewgame');
+                this.engine.postMessage(`position fen ${fen}`);
+                this.engine.postMessage(`go depth ${depth}`);
+
+                logger.log('info', 'AI analyzing position...', { fen, depth });
+
+                // Wait for analysis (max 10 seconds)
+                return new Promise((resolve) => {
+                    const startTime = Date.now();
+                    const checkInterval = setInterval(() => {
+                        if (this.currentAnalysis) {
+                            clearInterval(checkInterval);
+                            resolve(this.currentAnalysis);
+                        } else if (Date.now() - startTime > 10000) {
+                            clearInterval(checkInterval);
+                            logger.log('warn', 'AI analysis timeout');
+                            resolve(null);
+                        }
+                    }, 100);
+                });
+            }
+
+            convertMoveToReadable(move) {
+                // Convert UCI move (e2e4) to readable format (e2-e4 or piece name)
+                if (move.length === 4) {
+                    return `${move.slice(0, 2)}-${move.slice(2, 4)}`;
+                }
+                return move;
+            }
+        }
+
+        // Initialize AI engine
+        const aiEngine = new AIEngine();
+
+        // Add AI to debug console
+        window.chessDebug.getAIAnalysis = (fen) => aiEngine.analyzePosition(fen || gameState.currentPuzzle?.fen);
+
         // ==================== GAME STATE ====================
         const gameState = {
             // Player stats
@@ -2064,11 +2174,14 @@
             saveGameState();
         }
 
-        function showHint() {
+        async function showHint() {
             const hint = gameState.currentPuzzle.hint;
-            document.getElementById('puzzle-instruction').innerHTML = `<span class="highlight">💡 Hint:</span> ${hint}`;
+            const instructionEl = document.getElementById('puzzle-instruction');
 
-            // Also highlight the target square
+            // Show puzzle hint immediately
+            instructionEl.innerHTML = `<span class="highlight">💡 Hint:</span> ${hint}`;
+
+            // Highlight the target square
             const solution = gameState.currentPuzzle.solution[0];
             const toCol = solution.charCodeAt(2) - 97;
             const toRow = 8 - parseInt(solution[3]);
@@ -2078,6 +2191,20 @@
             targetSquare.classList.add('hint');
 
             setTimeout(() => targetSquare.classList.remove('hint'), 3000);
+
+            // Get AI analysis
+            instructionEl.innerHTML += `<br><span style="color: var(--secondary);">🤖 AI analyzing...</span>`;
+
+            const analysis = await aiEngine.analyzePosition(gameState.currentPuzzle.fen);
+
+            if (analysis) {
+                const moveReadable = aiEngine.convertMoveToReadable(analysis.bestMove);
+                const scoreText = analysis.score ? ` (${analysis.score > 0 ? '+' : ''}${analysis.score.toFixed(1)})` : '';
+                instructionEl.innerHTML = `<span class="highlight">💡 Hint:</span> ${hint}<br><span style="color: var(--secondary);">🤖 AI suggests: ${moveReadable}${scoreText}</span>`;
+                logger.trackAction('ai_hint_used', { move: analysis.bestMove, score: analysis.score });
+            } else {
+                instructionEl.innerHTML = `<span class="highlight">💡 Hint:</span> ${hint}<br><span style="color: var(--fire);">🤖 AI unavailable</span>`;
+            }
         }
 
         function freezeTimer() {
