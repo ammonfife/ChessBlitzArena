@@ -1913,10 +1913,11 @@
             const board = fenToBoard(gameState.currentPuzzle.fen);
             const isBlackToMove = gameState.currentPuzzle.toMove === 'Black';
 
-            // Flip board if Black to move (so Black pieces face player)
+            // Flip board based on who's to move (player's pieces always at bottom)
             for (let row = 0; row < 8; row++) {
                 for (let col = 0; col < 8; col++) {
-                    const displayRow = isBlackToMove ? row : row;
+                    // For display: flip the board so player's pieces are at bottom
+                    const displayRow = isBlackToMove ? row : 7 - row;
                     const displayCol = isBlackToMove ? 7 - col : col;
                     const actualRow = isBlackToMove ? 7 - row : row;
 
