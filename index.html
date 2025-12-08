@@ -1917,7 +1917,10 @@
             for (let row = 0; row < 8; row++) {
                 for (let col = 0; col < 8; col++) {
                     // For display: flip the board so player's pieces are at bottom
-                    const displayRow = isBlackToMove ? row : 7 - row;
+                    // FEN board[0] = rank 8 (black's back rank), board[7] = rank 1 (white's back rank)
+                    // Black to move: flip vertically so black (board[0]) shows at bottom
+                    // White to move: don't flip, white (board[7]) already at bottom
+                    const displayRow = isBlackToMove ? 7 - row : row;
                     const displayCol = isBlackToMove ? 7 - col : col;
                     const actualRow = isBlackToMove ? 7 - row : row;
 
