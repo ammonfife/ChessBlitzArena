@@ -28,3 +28,7 @@ auth.json
 *.json.secret
 private/
 tmp/secrets/
+
+# Large puzzle database files (>100MB)
+lichess_puzzles.csv
+lichess_puzzles.csv.zst

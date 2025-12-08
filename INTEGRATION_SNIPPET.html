@@ -1,0 +1,212 @@
+<!--
+═══════════════════════════════════════════════════════════════════════
+  CHESS BLITZ ARENA - TESTING & TOOLS INTEGRATION SNIPPET
+  Purpose: Add this to index.html to enable all testing and dev tools
+  Location: Add just before closing </body> tag
+═══════════════════════════════════════════════════════════════════════
+-->
+
+<!-- STEP 1: Error Handler - Load FIRST (catches all errors) -->
+<script src="error-handler.js"></script>
+
+<!-- STEP 2: Test Suite - Comprehensive testing framework -->
+<script src="test-comprehensive.js"></script>
+
+<!-- STEP 3: Dev Tools - Interactive debug panel (dev mode only) -->
+<script src="dev-tools.js"></script>
+
+<!--
+═══════════════════════════════════════════════════════════════════════
+  PRODUCTION VS DEVELOPMENT
+═══════════════════════════════════════════════════════════════════════
+
+  PRODUCTION (minimalist):
+  - Only include: error-handler.js
+  - Remove: test-comprehensive.js, dev-tools.js
+  - Result: Error catching only, no dev tools
+
+  DEVELOPMENT (full features):
+  - Include all 3 scripts above
+  - Add ?dev=true to URL for dev panel
+  - Access dev tools: Press Ctrl+Shift+D
+  - Run tests: runTests() in console
+
+═══════════════════════════════════════════════════════════════════════
+  USAGE EXAMPLES
+═══════════════════════════════════════════════════════════════════════
+
+  // In Browser Console:
+
+  // Run all tests
+  const suite = new ChessTestSuite();
+  await suite.runAll();
+
+  // Validate game state
+  const errors = validateGameState(gameState);
+  console.log(errors);
+
+  // Get error report
+  const report = chessErrorHandler.getErrorReport();
+  console.log(report);
+
+  // Toggle dev tools panel
+  chessDevTools.toggle();
+
+  // Quick test
+  chessDevTools.quickTest();
+
+  // Set state for testing
+  chessDevTools.setState('rating', 2000);
+  chessDevTools.setState('level', 50);
+  chessDevTools.maxPowerUps();
+
+  // Export logs
+  chessErrorHandler.exportErrors();
+
+═══════════════════════════════════════════════════════════════════════
+  KEYBOARD SHORTCUTS (when ?dev=true)
+═══════════════════════════════════════════════════════════════════════
+
+  Ctrl+Shift+D - Toggle Dev Tools Panel
+  Ctrl+Shift+T - Run All Tests
+  Ctrl+Shift+Q - Quick Test
+  Ctrl+Shift+R - Reset State
+
+═══════════════════════════════════════════════════════════════════════
+  VALIDATION HOOKS (add to your code)
+═══════════════════════════════════════════════════════════════════════
+-->
+
+<script>
+// EXAMPLE: Add validation before saving
+function saveGameState() {
+    // Validate before save
+    const errors = validateGameState(gameState);
+
+    if (errors.length > 0) {
+        console.error('Validation errors:', errors);
+        // Still save, but log the issues
+    }
+
+    // Use safe localStorage
+    chessErrorHandler.safeLocalStorageSet('chessBlitzGameState', gameState);
+}
+
+// EXAMPLE: Wrap risky functions
+const safeLoadPuzzle = safeWrap(loadNextPuzzle);
+
+// EXAMPLE: Validate puzzle before using
+function loadNextPuzzle() {
+    const puzzle = selectRandomPuzzle();
+
+    // Validate puzzle
+    const errors = validatePuzzle(puzzle);
+
+    if (errors.length > 0) {
+        console.error('Invalid puzzle:', errors);
+        // Skip to next puzzle
+        return loadNextPuzzle();
+    }
+
+    gameState.currentPuzzle = puzzle;
+    // ... rest of function
+}
+</script>
+
+<!--
+═══════════════════════════════════════════════════════════════════════
+  RECOMMENDED: Add error display to UI
+═══════════════════════════════════════════════════════════════════════
+-->
+
+<style>
+/* Optional: Error notification badge in corner */
+.error-badge {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: #e17055;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    display: none;
+    z-index: 99999;
+}
+
+.error-badge.visible {
+    display: block;
+}
+</style>
+
+<div id="error-badge" class="error-badge" onclick="chessErrorHandler.getErrorReport()">
+    <span id="error-count">0</span> errors
+</div>
+
+<script>
+// Optional: Update error badge
+setInterval(() => {
+    if (typeof chessErrorHandler !== 'undefined') {
+        const report = chessErrorHandler.getErrorReport();
+        const badge = document.getElementById('error-badge');
+        const count = document.getElementById('error-count');
+
+        if (report.errorCount > 0) {
+            badge.classList.add('visible');
+            count.textContent = report.errorCount;
+        } else {
+            badge.classList.remove('visible');
+        }
+    }
+}, 5000); // Check every 5 seconds
+</script>
+
+<!--
+═══════════════════════════════════════════════════════════════════════
+  TESTING COMMANDS
+═══════════════════════════════════════════════════════════════════════
+
+  Command Line:
+
+  # Quick validation
+  ./run-tests.sh quick
+
+  # Full analysis
+  ./run-tests.sh full
+
+  # E2B automated tests
+  ./run-tests.sh e2b
+
+  # Local dev server
+  ./run-tests.sh local
+
+═══════════════════════════════════════════════════════════════════════
+  WHAT YOU GET
+═══════════════════════════════════════════════════════════════════════
+
+  ✅ 80+ automated tests covering all core flows
+  ✅ Automatic error catching and reporting
+  ✅ Validation for game state, puzzles, and moves
+  ✅ Interactive dev tools panel
+  ✅ Performance profiling
+  ✅ State manipulation for testing
+  ✅ Error export for debugging
+  ✅ E2B regression testing
+  ✅ One-command test runner
+
+═══════════════════════════════════════════════════════════════════════
+  NEXT STEPS
+═══════════════════════════════════════════════════════════════════════
+
+  1. Copy the 3 <script> tags above to your index.html
+  2. Test in browser: http://localhost:8000?dev=true
+  3. Press Ctrl+Shift+D to open Dev Tools
+  4. Run: runTests() in console
+  5. Check: chessErrorHandler.getErrorReport()
+
+  For full guide, see: TESTING_AND_TOOLS_GUIDE.md
+
+═══════════════════════════════════════════════════════════════════════
+-->

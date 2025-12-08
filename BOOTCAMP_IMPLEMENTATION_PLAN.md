@@ -1004,7 +1004,358 @@ function formatDuration(ms) {
 
 ---
 
-## Phase 5: Integration & Testing
+## Phase 5: Real-Time Coaching System
+
+### 5.1 Coaching Triggers
+**Location**: New section after theme tracking (~line 2650)
+
+**Trigger Conditions:**
+```javascript
+const coachingTriggers = {
+  // Trigger when user struggles
+  three_failures: { threshold: 3, type: 'struggle' },
+  slow_solve: { threshold: 2.0, type: 'struggle' },  // 2x avg time
+  success_rate_drop: { threshold: 0.5, type: 'warning' },
+
+  // Trigger on success
+  five_streak: { threshold: 5, type: 'praise' },
+  mastery_achieved: { threshold: 85, type: 'celebrate' },
+
+  // Trigger on first encounter
+  new_theme: { type: 'intro' }
+};
+```
+
+### 5.2 AI-Generated Coaching Messages
+**Critical**: Coaching messages must be AI-generated and contextual, NOT canned templates.
+
+**Implementation approach:**
+```javascript
+async function generateCoachingMessage(context) {
+  // Context includes:
+  // - theme: Current puzzle theme (fork, pin, etc.)
+  // - triggerType: 'struggle', 'intro', 'mastered', etc.
+  // - fen: Current board position
+  // - solution: Puzzle solution moves
+  // - recentFailures: Array of recent failed attempts
+  // - performanceStats: Theme performance data
+  // - timeSpent: How long user spent on this puzzle
+
+  // Use Stockfish to analyze position
+  const analysis = await analyzeWithStockfish(context.fen, 3);
+
+  // Build context for AI coaching
+  const coachingPrompt = buildCoachingPrompt({
+    theme: context.theme,
+    triggerType: context.triggerType,
+    position: context.fen,
+    topMoves: analysis.topMoves,
+    evaluation: analysis.evaluation,
+    recentPattern: context.recentFailures,
+    mastery: context.performanceStats.mastery,
+    timeSpent: context.timeSpent
+  });
+
+  // Generate contextual coaching message
+  // Options:
+  // 1. Use a lightweight AI API (OpenAI, Claude, etc.)
+  // 2. Use Stockfish analysis + template generation
+  // 3. Local LLM for offline capability
+
+  const message = await callCoachingAI(coachingPrompt);
+
+  return message;
+}
+
+function buildCoachingPrompt(data) {
+  // Construct prompt based on trigger type
+  let prompt = `You are a chess coach providing encouragement and tactical guidance.
+
+Position: ${data.position}
+Theme: ${data.theme}
+Trigger: ${data.triggerType}
+Evaluation: ${data.evaluation}
+User mastery: ${data.mastery}%
+
+`;
+
+  if (data.triggerType === 'struggle') {
+    prompt += `The user has failed ${data.recentPattern.length} recent attempts on ${data.theme} puzzles.
+Provide a brief, encouraging tip that references specific features of THIS position.
+Be conversational and supportive, not robotic.
+Maximum 2 sentences.`;
+
+  } else if (data.triggerType === 'intro') {
+    prompt += `This is the user's first ${data.theme} puzzle.
+Provide a brief introduction to this tactical pattern using features from THIS specific position.
+Maximum 2 sentences.`;
+
+  } else if (data.triggerType === 'mastered') {
+    prompt += `The user has achieved ${data.mastery}% mastery on ${data.theme} puzzles!
+Provide brief, genuine praise.
+Maximum 1 sentence.`;
+  }
+
+  prompt += `\n\nGenerate ONLY the coaching message text. No labels, no formatting.`;
+
+  return prompt;
+}
+
+async function callCoachingAI(prompt) {
+  // Implementation options:
+
+  // Option 1: OpenAI API (requires API key)
+  // const response = await fetch('https://api.openai.com/v1/chat/completions', {...});
+
+  // Option 2: Claude API (requires API key)
+  // const response = await fetch('https://api.anthropic.com/v1/messages', {...});
+
+  // Option 3: Fallback to Stockfish-based generation (offline)
+  // return generateFromStockfish(prompt);
+
+  // For now, return placeholder - will implement based on API choice
+  return "AI coaching message will be generated here";
+}
+```
+
+**Key Requirements:**
+- Messages reference the ACTUAL position (e.g., "Notice how the knight on f3 can reach e5")
+- Contextual to user's performance pattern (recent failures, time spent, mastery level)
+- Conversational and supportive, not canned spam
+- Maximum 2 sentences for struggle/intro, 1 sentence for praise
+- Generated fresh each time, not pulled from a static library
+
+### 5.2 Coach Display System
+**Location**: New UI component
+
+**HTML** (add to page):
+```html
+<!-- Coaching Toast -->
+<div class="coaching-toast" id="coaching-toast" style="display: none;">
+  <div class="coach-avatar">🤖</div>
+  <div class="coach-message">
+    <div class="coach-title" id="coach-title">Coach</div>
+    <div class="coach-text" id="coach-text"></div>
+  </div>
+  <button class="coach-close" onclick="closeCoach()">✕</button>
+</div>
+```
+
+**CSS:**
+```css
+.coaching-toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 400px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 3px solid var(--gold);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+  z-index: 10000;
+  animation: slideInRight 0.5s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(500px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.coach-avatar {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.coach-message {
+  flex: 1;
+}
+
+.coach-title {
+  font-weight: bold;
+  color: var(--gold);
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.coach-text {
+  color: white;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.coach-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.coach-close:hover {
+  opacity: 1;
+}
+```
+
+### 5.3 Coaching Logic
+**Location**: New functions after theme tracking
+
+```javascript
+// Track recent performance for coaching
+let coachingContext = {
+  recentFailures: [],  // Last 10 failures with themes
+  currentStreak: 0,
+  lastCoachTime: 0,
+  coachingCooldown: 30000  // 30 seconds between coaching messages
+};
+
+function checkCoachingTriggers(puzzle, wasCorrect, timeSpent) {
+  if (!gameState.inBootcamp) return;
+
+  const now = Date.now();
+
+  // Cooldown check - don't spam coaching
+  if (now - coachingContext.lastCoachTime < coachingContext.coachingCooldown) {
+    return;
+  }
+
+  const themes = puzzle.themes || [];
+  const primaryTheme = themes[0];  // Focus on first theme
+
+  if (wasCorrect) {
+    coachingContext.currentStreak++;
+    coachingContext.recentFailures = [];
+
+    // Check for praise triggers
+    if (coachingContext.currentStreak === 5) {
+      showCoaching('general', 'praise');
+    }
+
+    // Check for mastery celebration
+    const stats = gameState.themeStats[primaryTheme];
+    if (stats && stats.mastery >= 85 && stats.total >= 20) {
+      const justMastered = stats.mastery < 85 - 5;  // Just crossed threshold
+      if (justMastered) {
+        showCoaching(primaryTheme, 'mastered');
+      }
+    }
+
+  } else {
+    // Failed
+    coachingContext.currentStreak = 0;
+    coachingContext.recentFailures.push({ theme: primaryTheme, time: now });
+
+    // Keep only last 10
+    if (coachingContext.recentFailures.length > 10) {
+      coachingContext.recentFailures.shift();
+    }
+
+    // Check for struggle patterns
+    const recentThemeFailures = coachingContext.recentFailures.filter(f => f.theme === primaryTheme);
+
+    if (recentThemeFailures.length >= 3) {
+      // 3+ failures on this theme recently
+      showCoaching(primaryTheme, 'struggle');
+      coachingContext.recentFailures = [];  // Clear after coaching
+    }
+  }
+
+  // Check for slow solve
+  const avgTime = getAverageTime(primaryTheme);
+  if (avgTime > 0 && timeSpent > avgTime * 2) {
+    showCoaching(primaryTheme, 'hint');
+  }
+
+  // Check for first encounter with new theme
+  const stats = gameState.themeStats[primaryTheme];
+  if (stats && stats.total === 1) {
+    showCoaching(primaryTheme, 'intro');
+  }
+
+  // Check overall session performance
+  const recentPuzzles = gameState.sessionPuzzles.slice(-20);
+  if (recentPuzzles.length >= 10) {
+    const successRate = recentPuzzles.filter(p => p.correct).length / recentPuzzles.length;
+    if (successRate < 0.5 && now - coachingContext.lastCoachTime > 60000) {
+      showCoaching('general', 'warning');
+    }
+  }
+}
+
+function getAverageTime(theme) {
+  const stats = gameState.themeStats[theme];
+  if (!stats || stats.attempts.length === 0) return 0;
+
+  const totalTime = stats.attempts.reduce((sum, a) => sum + a.time, 0);
+  return totalTime / stats.attempts.length;
+}
+
+function showCoaching(theme, messageType) {
+  const messages = coachingLibrary[theme] || coachingLibrary.general;
+  const message = messages[messageType];
+
+  if (!message) return;
+
+  // Update toast
+  document.getElementById('coach-title').textContent =
+    messageType === 'mastered' ? '🎉 Mastery Achieved!' :
+    messageType === 'intro' ? '💡 New Pattern' :
+    messageType === 'struggle' ? '🤔 Coaching Tip' :
+    messageType === 'praise' ? '🌟 Great Work!' :
+    '⚠️ Focus Alert';
+
+  document.getElementById('coach-text').innerHTML = message;
+
+  const toast = document.getElementById('coaching-toast');
+  toast.style.display = 'flex';
+
+  // Auto-hide after 8 seconds
+  setTimeout(() => {
+    toast.style.display = 'none';
+  }, 8000);
+
+  coachingContext.lastCoachTime = Date.now();
+
+  logger.log('info', 'Coaching triggered', { theme, messageType });
+}
+
+function closeCoach() {
+  document.getElementById('coaching-toast').style.display = 'none';
+}
+```
+
+### 5.4 Integration Points
+
+**In handleCorrectAnswer():**
+```javascript
+// After updateThemeStats()
+if (gameState.inBootcamp) {
+  checkCoachingTriggers(gameState.currentPuzzle, true, timeSpent);
+}
+```
+
+**In handleWrongAnswer():**
+```javascript
+// After updateThemeStats()
+if (gameState.inBootcamp) {
+  checkCoachingTriggers(gameState.currentPuzzle, false, timeSpent);
+}
+```
+
+---
+
+## Phase 6: Integration & Testing
 
 ### 5.1 Modify Existing Functions
 
