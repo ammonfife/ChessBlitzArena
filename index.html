@@ -953,6 +953,77 @@
             text-shadow: 0 0 50px rgba(253, 203, 110, 0.8);
         }
 
+        /* Coaching Toast */
+        .coaching-toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 400px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 3px solid var(--gold);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            z-index: 10000;
+            animation: slideInRight 0.5s ease;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(500px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .coach-avatar {
+            font-size: 48px;
+            line-height: 1;
+        }
+
+        .coach-message {
+            flex: 1;
+        }
+
+        .coach-title {
+            font-weight: bold;
+            color: var(--gold);
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .coach-text {
+            color: white;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .coach-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .coach-close:hover {
+            opacity: 1;
+        }
+
         /* Shop Button */
         .shop-btn {
             position: fixed;
@@ -1292,6 +1363,16 @@
 
     <!-- Confetti Container -->
     <div class="confetti-container" id="confetti-container"></div>
+
+    <!-- Coaching Toast -->
+    <div class="coaching-toast" id="coaching-toast" style="display: none;">
+        <div class="coach-avatar">🤖</div>
+        <div class="coach-message">
+            <div class="coach-title" id="coach-title">Coach</div>
+            <div class="coach-text" id="coach-text"></div>
+        </div>
+        <button class="coach-close" onclick="closeCoach()">✕</button>
+    </div>
 
     <script>
         // ==================== LOGGING SYSTEM ====================
@@ -2454,6 +2535,19 @@
             // Check achievements
             checkAchievements();
 
+            // Bootcamp mode: Track theme performance
+            if (gameState.inBootcamp && gameState.currentPuzzle) {
+                const themes = gameState.currentPuzzle.themes || [];
+                updateThemeStats(themes, true);
+
+                // Update session tracking
+                const lastPuzzle = gameState.sessionPuzzles[gameState.sessionPuzzles.length - 1];
+                if (lastPuzzle && lastPuzzle.puzzleId === gameState.currentPuzzle.id) {
+                    lastPuzzle.correct = true;
+                    lastPuzzle.timeSpent = 30 - gameState.timer;
+                }
+            }
+
             updateAllDisplays();
             saveGameState();
 
@@ -2490,6 +2584,19 @@
 
                 // Move to next puzzle in assessment
                 setTimeout(() => loadNextPuzzle(), 1500);
+            }
+
+            // Bootcamp mode: Track theme performance
+            if (gameState.inBootcamp && gameState.currentPuzzle) {
+                const themes = gameState.currentPuzzle.themes || [];
+                updateThemeStats(themes, false);
+
+                // Update session tracking
+                const lastPuzzle = gameState.sessionPuzzles[gameState.sessionPuzzles.length - 1];
+                if (lastPuzzle && lastPuzzle.puzzleId === gameState.currentPuzzle.id) {
+                    lastPuzzle.correct = false;
+                    lastPuzzle.timeSpent = 30 - gameState.timer;
+                }
             }
 
             updateAllDisplays();
@@ -2600,6 +2707,8 @@
 
             if (gameState.inAssessment) {
                 loadAssessmentPuzzle();
+            } else if (gameState.inBootcamp) {
+                loadBootcampPuzzle();
             } else {
                 loadRatedPuzzle();
             }
@@ -2657,6 +2766,571 @@
             renderBoard();
             updatePuzzleInfo();
             startTimer();
+        }
+
+        // ==================== BOOTCAMP ADAPTIVE SYSTEM ====================
+        // Phase 2: Theme Performance Tracking and Adaptive Puzzle Selection
+
+        // Update theme stats after each puzzle
+        function updateThemeStats(themes, wasCorrect) {
+            if (!Array.isArray(themes) || themes.length === 0) return;
+
+            const timeSpent = 30 - gameState.timer;
+
+            themes.forEach(theme => {
+                if (!gameState.themeStats[theme]) {
+                    gameState.themeStats[theme] = {
+                        correct: 0,
+                        total: 0,
+                        mastery: 0,
+                        lastTested: Date.now(),
+                        needsDrill: false,
+                        attempts: []
+                    };
+                }
+
+                const stats = gameState.themeStats[theme];
+                stats.total++;
+                if (wasCorrect) stats.correct++;
+                stats.mastery = (stats.correct / stats.total) * 100;
+                stats.lastTested = Date.now();
+                stats.attempts.push({
+                    correct: wasCorrect,
+                    time: timeSpent,
+                    timestamp: Date.now()
+                });
+
+                // Keep only last 100 attempts
+                if (stats.attempts.length > 100) {
+                    stats.attempts.shift();
+                }
+
+                // Mark as needing drill if below threshold
+                if (bootcampCurriculum && bootcampCurriculum.adaptation_rules) {
+                    const rules = bootcampCurriculum.adaptation_rules;
+                    stats.needsDrill = stats.mastery < rules.acceptable_threshold &&
+                                       stats.total >= rules.min_sample_size;
+                }
+            });
+
+            logger.log('info', 'Theme stats updated', {
+                themes,
+                wasCorrect,
+                mastery: getMasterySnapshot()
+            });
+        }
+
+        // Get current mastery snapshot
+        function getMasterySnapshot() {
+            const snapshot = {};
+            Object.keys(gameState.themeStats).forEach(theme => {
+                snapshot[theme] = Math.round(gameState.themeStats[theme].mastery);
+            });
+            return snapshot;
+        }
+
+        // Identify weak themes needing focus
+        function getWeakThemes() {
+            if (!bootcampCurriculum || !bootcampCurriculum.adaptation_rules) {
+                return [];
+            }
+
+            const rules = bootcampCurriculum.adaptation_rules;
+            const weak = [];
+
+            Object.entries(gameState.themeStats).forEach(([theme, stats]) => {
+                if (stats.total >= rules.min_sample_size &&
+                    stats.mastery < rules.acceptable_threshold) {
+                    weak.push({
+                        theme,
+                        mastery: stats.mastery,
+                        deficit: rules.acceptable_threshold - stats.mastery,
+                        priority: (rules.acceptable_threshold - stats.mastery) * stats.total
+                    });
+                }
+            });
+
+            // Sort by priority (higher = more urgent)
+            weak.sort((a, b) => b.priority - a.priority);
+            return weak;
+        }
+
+        // Check if theme is mastered (can skip/reduce)
+        function isThemeMastered(theme) {
+            const stats = gameState.themeStats[theme];
+            if (!stats || stats.total < 10) return false; // Need min sample
+
+            if (!bootcampCurriculum || !bootcampCurriculum.adaptation_rules) {
+                return stats.mastery >= 85;
+            }
+
+            const rules = bootcampCurriculum.adaptation_rules;
+            return stats.mastery >= rules.mastery_threshold;
+        }
+
+        // Adaptive puzzle selector for bootcamp mode (70/20/10 algorithm)
+        function loadBootcampPuzzle() {
+            if (!bootcampCurriculum) {
+                logger.log('error', 'Bootcamp curriculum not loaded');
+                loadRatedPuzzle();
+                return;
+            }
+
+            // 1. Determine which theme pool to use (based on day/rating)
+            const dayData = bootcampCurriculum.daily_targets[gameState.bootcampDay - 1];
+            const poolName = dayData.focus;
+            const themePool = bootcampCurriculum.theme_pools[poolName];
+
+            // 2. Get weak themes
+            const weakThemes = getWeakThemes();
+
+            // 3. Decide selection strategy (70/20/10 split)
+            const roll = Math.random();
+            let selectedTheme = null;
+
+            if (roll < 0.70 && weakThemes.length > 0) {
+                // 70% chance: Focus on weakness
+                selectedTheme = weakThemes[0].theme;
+                logger.log('info', 'Weakness focus', {
+                    theme: selectedTheme,
+                    mastery: weakThemes[0].mastery
+                });
+
+            } else if (roll < 0.90) {
+                // 20% chance: Maintenance (practice all non-mastered themes from pool)
+                const poolThemes = themePool.themes.filter(t => {
+                    const stats = gameState.themeStats[t.id];
+                    return !stats || !isThemeMastered(t.id);
+                });
+                if (poolThemes.length > 0) {
+                    selectedTheme = poolThemes[Math.floor(Math.random() * poolThemes.length)].id;
+                    logger.log('info', 'Maintenance', { theme: selectedTheme });
+                }
+
+            } else {
+                // 10% chance: Introduce new theme
+                const unseenThemes = themePool.themes.filter(t => !gameState.themeStats[t.id]);
+                if (unseenThemes.length > 0) {
+                    selectedTheme = unseenThemes[Math.floor(Math.random() * unseenThemes.length)].id;
+                    logger.log('info', 'New theme', { theme: selectedTheme });
+                }
+            }
+
+            // 4. Filter puzzles by theme and rating range
+            const rating = gameState.rating;
+            const ratingRange = themePool.rating_range;
+            const minRating = Math.max(rating - 150, ratingRange[0]);
+            const maxRating = Math.min(rating + 150, ratingRange[1]);
+
+            let candidates = [];
+
+            if (selectedTheme) {
+                candidates = getAllPuzzlesWithTheme(selectedTheme, minRating, maxRating);
+            }
+
+            if (candidates.length === 0) {
+                logger.log('warn', 'No puzzles found for theme, falling back to pool', {
+                    theme: selectedTheme
+                });
+                // Fallback: any puzzle in rating range
+                candidates = getAllPuzzlesInRange(minRating, maxRating);
+            }
+
+            if (candidates.length === 0) {
+                logger.log('error', 'No puzzles available in range, using rated puzzle');
+                loadRatedPuzzle();
+                return;
+            }
+
+            // 5. Select random puzzle from candidates
+            const puzzle = candidates[Math.floor(Math.random() * candidates.length)];
+            gameState.currentPuzzle = puzzle;
+            gameState.puzzlesAttempted++;
+            gameState.bootcampPuzzlesToday++;
+
+            // 6. Track session
+            gameState.sessionPuzzles.push({
+                puzzleId: puzzle.id,
+                themes: puzzle.themes || [],
+                rating: puzzle.rating,
+                startTime: Date.now(),
+                correct: null,
+                timeSpent: null
+            });
+
+            initializeChessInstance();
+            renderBoard();
+            updatePuzzleInfo();
+            startTimer();
+
+            logger.log('info', 'Loaded bootcamp puzzle', {
+                theme: selectedTheme,
+                puzzleRating: puzzle.rating,
+                playerRating: rating,
+                candidates: candidates.length
+            });
+        }
+
+        // Helper: Get all puzzles with specific theme
+        function getAllPuzzlesWithTheme(theme, minRating, maxRating) {
+            const allPuzzles = [];
+
+            // Iterate through all tier databases
+            Object.values(puzzleDatabase).forEach(tierPuzzles => {
+                if (Array.isArray(tierPuzzles)) {
+                    tierPuzzles.forEach(puzzle => {
+                        if (puzzle.themes &&
+                            puzzle.themes.includes(theme) &&
+                            puzzle.rating >= minRating &&
+                            puzzle.rating <= maxRating) {
+                            allPuzzles.push(puzzle);
+                        }
+                    });
+                }
+            });
+
+            return allPuzzles;
+        }
+
+        // Helper: Get all puzzles in rating range
+        function getAllPuzzlesInRange(minRating, maxRating) {
+            const allPuzzles = [];
+
+            Object.values(puzzleDatabase).forEach(tierPuzzles => {
+                if (Array.isArray(tierPuzzles)) {
+                    tierPuzzles.forEach(puzzle => {
+                        if (puzzle.rating >= minRating && puzzle.rating <= maxRating) {
+                            allPuzzles.push(puzzle);
+                        }
+                    });
+                }
+            });
+
+            return allPuzzles;
+        }
+
+        // ==================== AI-POWERED COACHING SYSTEM ====================
+        // Phase 5: Real-Time Coaching with AI-Generated Messages
+
+        // Coaching context for tracking when to trigger coaching
+        let coachingContext = {
+            recentFailures: [],  // Last 10 failures with themes
+            currentStreak: 0,
+            lastCoachTime: 0,
+            coachingCooldown: 30000  // 30 seconds between coaching messages
+        };
+
+        // Check if coaching should trigger and display message
+        function checkCoachingTriggers(puzzle, wasCorrect, timeSpent) {
+            if (!gameState.inBootcamp) return;
+            if (!puzzle) return;
+
+            const now = Date.now();
+
+            // Cooldown check - don't spam coaching
+            if (now - coachingContext.lastCoachTime < coachingContext.coachingCooldown) {
+                return;
+            }
+
+            const themes = puzzle.themes || [];
+            const primaryTheme = themes[0] || 'general';
+
+            if (wasCorrect) {
+                coachingContext.currentStreak++;
+                coachingContext.recentFailures = [];
+
+                // Check for praise triggers
+                if (coachingContext.currentStreak === 5) {
+                    triggerCoaching({
+                        theme: primaryTheme,
+                        triggerType: 'praise',
+                        fen: puzzle.fen,
+                        solution: puzzle.solution,
+                        timeSpent: timeSpent
+                    });
+                    return;
+                }
+
+                // Check for mastery celebration
+                const stats = gameState.themeStats[primaryTheme];
+                if (stats && stats.mastery >= 85 && stats.total >= 20) {
+                    const previousMastery = stats.attempts.length >= 2 ?
+                        ((stats.correct - 1) / (stats.total - 1) * 100) : 0;
+                    const justMastered = previousMastery < 85;
+                    if (justMastered) {
+                        triggerCoaching({
+                            theme: primaryTheme,
+                            triggerType: 'mastered',
+                            fen: puzzle.fen,
+                            mastery: Math.round(stats.mastery),
+                            timeSpent: timeSpent
+                        });
+                        return;
+                    }
+                }
+
+            } else {
+                // Failed
+                coachingContext.currentStreak = 0;
+                coachingContext.recentFailures.push({ theme: primaryTheme, time: now });
+
+                // Keep only last 10
+                if (coachingContext.recentFailures.length > 10) {
+                    coachingContext.recentFailures.shift();
+                }
+
+                // Check for struggle patterns
+                const recentThemeFailures = coachingContext.recentFailures.filter(f => f.theme === primaryTheme);
+
+                if (recentThemeFailures.length >= 3) {
+                    // 3+ failures on this theme recently
+                    triggerCoaching({
+                        theme: primaryTheme,
+                        triggerType: 'struggle',
+                        fen: puzzle.fen,
+                        solution: puzzle.solution,
+                        failureCount: recentThemeFailures.length,
+                        timeSpent: timeSpent
+                    });
+                    coachingContext.recentFailures = [];  // Clear after coaching
+                    return;
+                }
+
+                // Check for slow solve
+                const avgTime = getAverageTime(primaryTheme);
+                if (avgTime > 0 && timeSpent > avgTime * 2) {
+                    triggerCoaching({
+                        theme: primaryTheme,
+                        triggerType: 'slow',
+                        fen: puzzle.fen,
+                        solution: puzzle.solution,
+                        avgTime: Math.round(avgTime),
+                        timeSpent: Math.round(timeSpent)
+                    });
+                    return;
+                }
+            }
+
+            // Check for first encounter with new theme
+            const stats = gameState.themeStats[primaryTheme];
+            if (stats && stats.total === 1) {
+                triggerCoaching({
+                    theme: primaryTheme,
+                    triggerType: 'intro',
+                    fen: puzzle.fen,
+                    solution: puzzle.solution,
+                    timeSpent: timeSpent
+                });
+                return;
+            }
+        }
+
+        // Get average time for a theme
+        function getAverageTime(theme) {
+            const stats = gameState.themeStats[theme];
+            if (!stats || stats.attempts.length === 0) return 0;
+
+            const totalTime = stats.attempts.reduce((sum, a) => sum + a.time, 0);
+            return totalTime / stats.attempts.length;
+        }
+
+        // Trigger coaching with AI-generated message
+        async function triggerCoaching(context) {
+            logger.log('info', 'Coaching triggered', context);
+
+            // Generate coaching message
+            const message = await generateCoachingMessage(context);
+
+            // Determine title based on trigger type
+            const titles = {
+                'struggle': '🤔 Coaching Tip',
+                'intro': '💡 New Pattern',
+                'mastered': '🎉 Mastery Achieved!',
+                'praise': '🌟 Great Work!',
+                'slow': '⏱️ Time Management'
+            };
+
+            const title = titles[context.triggerType] || '🤖 Coach';
+
+            showCoaching(message, title);
+        }
+
+        // AI-powered coaching message generation
+        async function generateCoachingMessage(context) {
+            // Build prompt for LLM
+            const prompt = buildCoachingPrompt(context);
+
+            // Try to generate with AI, fallback to template if unavailable
+            try {
+                const aiMessage = await callCoachingAI(prompt);
+                if (aiMessage) return aiMessage;
+            } catch (error) {
+                logger.log('warn', 'AI coaching failed, using fallback', { error: error.message });
+            }
+
+            // Fallback: Generate contextual message without AI API
+            return generateFallbackMessage(context);
+        }
+
+        // Build prompt for AI coaching
+        function buildCoachingPrompt(context) {
+            const { theme, triggerType, fen, solution, mastery, failureCount, avgTime, timeSpent } = context;
+
+            let prompt = `You are a supportive chess coach. Generate a brief, encouraging coaching message.
+
+Position FEN: ${fen}
+Puzzle theme: ${theme}
+Solution moves: ${solution ? solution.join(', ') : 'unknown'}
+
+`;
+
+            if (triggerType === 'struggle') {
+                prompt += `The student has failed ${failureCount || 3} recent ${theme} puzzles.
+Provide a brief, encouraging tip that references THIS specific position.
+Be conversational and supportive, not robotic.
+Maximum 2 sentences.`;
+
+            } else if (triggerType === 'intro') {
+                prompt += `This is the student's first ${theme} puzzle.
+Provide a brief introduction to the ${theme} pattern using features from THIS position.
+Maximum 2 sentences.`;
+
+            } else if (triggerType === 'mastered') {
+                prompt += `The student achieved ${mastery}% mastery on ${theme} puzzles!
+Provide brief, genuine praise.
+Maximum 1 sentence.`;
+
+            } else if (triggerType === 'praise') {
+                prompt += `The student just solved 5 puzzles in a row!
+Provide brief, genuine praise.
+Maximum 1 sentence.`;
+
+            } else if (triggerType === 'slow') {
+                prompt += `The student took ${timeSpent}s on this puzzle (average: ${avgTime}s).
+Provide a brief tip about pattern recognition for ${theme} puzzles.
+Maximum 2 sentences.`;
+            }
+
+            prompt += `\n\nGenerate ONLY the coaching message text. No labels, no formatting.`;
+
+            return prompt;
+        }
+
+        // Call AI API for coaching (OpenAI GPT-3.5-turbo)
+        async function callCoachingAI(prompt) {
+            // Check if API key is available (would need to be configured)
+            const apiKey = localStorage.getItem('openai_api_key');
+
+            if (!apiKey) {
+                logger.log('info', 'No OpenAI API key configured, using fallback messages');
+                return null;
+            }
+
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are a supportive chess coach who provides brief, encouraging guidance.'
+                            },
+                            {
+                                role: 'user',
+                                content: prompt
+                            }
+                        ],
+                        max_tokens: 100,
+                        temperature: 0.7
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API request failed: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const message = data.choices[0]?.message?.content?.trim();
+
+                logger.log('success', 'AI coaching message generated', { length: message?.length });
+
+                return message;
+
+            } catch (error) {
+                logger.log('error', 'Failed to generate AI coaching', { error: error.message });
+                return null;
+            }
+        }
+
+        // Fallback message generation (no AI API required)
+        function generateFallbackMessage(context) {
+            const { theme, triggerType, mastery, failureCount, avgTime, timeSpent } = context;
+
+            const messages = {
+                'struggle': [
+                    `Take your time with ${theme} puzzles - look for the key pieces and their relationships.`,
+                    `${theme} patterns can be tricky! Focus on identifying the vulnerable pieces first.`,
+                    `Remember: in ${theme} tactics, timing and piece coordination are crucial.`
+                ],
+                'intro': [
+                    `Welcome to ${theme} puzzles! This tactical pattern is all about exploiting piece positioning.`,
+                    `This is your first ${theme} puzzle - look for how the pieces interact to create the tactic.`,
+                    `${theme} is a fundamental pattern - take your time to understand it here.`
+                ],
+                'mastered': [
+                    `Incredible! You've mastered ${theme} with ${mastery}% accuracy!`,
+                    `Outstanding work! ${mastery}% mastery of ${theme} puzzles - you've got this pattern down!`,
+                    `Amazing progress! ${theme} is now one of your strengths at ${mastery}%!`
+                ],
+                'praise': [
+                    `Five in a row - you're on fire! Keep this momentum going!`,
+                    `Excellent streak! Your pattern recognition is really sharp right now.`,
+                    `Outstanding! Five straight successes shows you're in the zone.`
+                ],
+                'slow': [
+                    `You spent ${timeSpent}s on this one (average: ${avgTime}s). Try to spot ${theme} patterns more quickly!`,
+                    `Pattern recognition speeds up with practice. Look for ${theme} setups faster!`,
+                    `The more ${theme} puzzles you solve, the faster you'll recognize them!`
+                ]
+            };
+
+            const messageList = messages[triggerType] || messages['praise'];
+            const randomMessage = messageList[Math.floor(Math.random() * messageList.length)];
+
+            return randomMessage;
+        }
+
+        // Display coaching toast
+        function showCoaching(message, title) {
+            if (!message) return;
+
+            const toast = document.getElementById('coaching-toast');
+            const titleEl = document.getElementById('coach-title');
+            const textEl = document.getElementById('coach-text');
+
+            titleEl.textContent = title || '🤖 Coach';
+            textEl.textContent = message;
+
+            toast.style.display = 'flex';
+
+            // Auto-hide after 8 seconds
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 8000);
+
+            coachingContext.lastCoachTime = Date.now();
+
+            logger.log('info', 'Coaching displayed', { title, messageLength: message.length });
+        }
+
+        // Close coaching toast
+        function closeCoach() {
+            document.getElementById('coaching-toast').style.display = 'none';
         }
 
         // Initialize Chess.js instance for current puzzle
