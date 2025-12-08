@@ -2455,11 +2455,23 @@
             boardElement.innerHTML = '';
 
             if (!gameState.currentPuzzle) {
-                // Show empty board
+                // Show starting position when no puzzle loaded
+                const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+                const board = fenToBoard(startingFEN);
+
                 for (let row = 0; row < 8; row++) {
                     for (let col = 0; col < 8; col++) {
                         const square = document.createElement('div');
                         square.className = `square ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
+
+                        const piece = board[row][col];
+                        if (piece) {
+                            const pieceSpan = document.createElement('span');
+                            pieceSpan.className = 'piece';
+                            pieceSpan.textContent = piece;
+                            square.appendChild(pieceSpan);
+                        }
+
                         boardElement.appendChild(square);
                     }
                 }
