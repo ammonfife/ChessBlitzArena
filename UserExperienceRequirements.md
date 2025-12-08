@@ -132,12 +132,21 @@
 ## 5. MUST-HAVES: AI & Hints
 
 ### Hint System
+- [ ] **CRITICAL**: Puzzle shows NO solution/move names until hint requested (blind solving)
 - [ ] Hint button always accessible (if hints remaining)
+- [ ] When hint used: Show BOTH move name AND hint text clearly
 - [ ] Shows best move with visual highlight
 - [ ] Provides explanation in plain language
 - [ ] Does NOT auto-play move
 - [ ] Costs 1 hint from limited supply
 - [ ] Refills slowly (1 per 3 puzzles) or via level-up
+
+### Puzzle Navigation
+- [ ] Back button: Return to previous puzzle
+- [ ] Forward button: Advance to next puzzle (if available)
+- [ ] Keyboard shortcuts: Arrow keys for navigation
+- [ ] Preserve puzzle state when navigating
+- [ ] Show position in puzzle history (e.g., "Puzzle 15 of 23")
 
 ### AI Analysis
 - [ ] Stockfish engine for position analysis
