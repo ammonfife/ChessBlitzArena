@@ -1634,6 +1634,32 @@
             puzzleHistoryIndex: -1,
             hintUsed: false,
 
+            // Bootcamp state
+            inBootcamp: false,
+            bootcampDay: 0,
+            bootcampStartTime: null,
+            bootcampMode: 'learning',
+            bootcampSessionStart: null,
+            bootcampPuzzlesToday: 0,
+            bootcampTargetToday: 0,
+
+            // Theme performance tracking (adaptive core)
+            themeStats: {},
+
+            // Session tracking
+            sessionPuzzles: [],
+            sessionStartTime: null,
+            sessionBreaks: [],
+
+            // Daily progress
+            dailyStats: {
+                day1: null,
+                day2: null,
+                day3: null,
+                day4: null,
+                day5: null
+            },
+
             // Chess.js instance for move validation
             chessInstance: null
         };
@@ -1902,6 +1928,32 @@
             }
         }
 
+        // ==================== BOOTCAMP CURRICULUM ====================
+        let bootcampCurriculum = null;
+
+        async function loadBootcampCurriculum() {
+            try {
+                logger.log('info', 'Loading bootcamp curriculum...');
+                const response = await fetch('bootcamp-curriculum.json');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                bootcampCurriculum = await response.json();
+
+                logger.log('success', 'Loaded bootcamp curriculum', {
+                    days: bootcampCurriculum.daily_targets.length,
+                    theme_pools: Object.keys(bootcampCurriculum.theme_pools).length
+                });
+
+                return true;
+            } catch (error) {
+                logger.log('error', 'Failed to load bootcamp curriculum', { error: error.message });
+                return false;
+            }
+        }
+
         // ==================== RANK SYSTEM ====================
         const ranks = [
             { name: "Beginner", minRating: 0, icon: "♟️", color: "#95a5a6" },
@@ -1929,6 +1981,7 @@
         async function init() {
             // Load puzzle database first
             await loadPuzzleDatabase();
+            await loadBootcampCurriculum();
 
             createParticles();
             loadGameState();
@@ -2001,7 +2054,19 @@
                 powers: gameState.powers,
                 currentTheme: gameState.currentTheme,
                 unlockedThemes: gameState.unlockedThemes,
-                dailyCompleted: gameState.dailyCompleted
+                dailyCompleted: gameState.dailyCompleted,
+                // Bootcamp state
+                inBootcamp: gameState.inBootcamp,
+                bootcampDay: gameState.bootcampDay,
+                bootcampStartTime: gameState.bootcampStartTime,
+                bootcampMode: gameState.bootcampMode,
+                bootcampSessionStart: gameState.bootcampSessionStart,
+                bootcampPuzzlesToday: gameState.bootcampPuzzlesToday,
+                bootcampTargetToday: gameState.bootcampTargetToday,
+                themeStats: gameState.themeStats,
+                sessionPuzzles: gameState.sessionPuzzles,
+                sessionBreaks: gameState.sessionBreaks,
+                dailyStats: gameState.dailyStats
             };
             localStorage.setItem('chessBlitzState', JSON.stringify(toSave));
         }
