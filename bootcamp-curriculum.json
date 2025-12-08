@@ -1,0 +1,355 @@
+{
+  "meta": {
+    "name": "5-Day Adaptive Tactical Bootcamp",
+    "description": "Fully adaptive intensive training: 900 → 1600 in 5 days",
+    "target_rating_gain": 700,
+    "total_hours": 56,
+    "total_puzzles_target": 1870,
+    "created": "2025-12-07",
+    "adaptive": true
+  },
+
+  "adaptation_rules": {
+    "mastery_threshold": 85,
+    "acceptable_threshold": 70,
+    "needs_work_threshold": 60,
+    "critical_threshold": 50,
+    "min_sample_size": 10,
+    "weakness_multiplier": 1.5,
+    "mastery_skip_rate": 0.5,
+    "retest_interval": 20,
+    "description": "Real-time performance tracking adjusts curriculum dynamically"
+  },
+
+  "daily_targets": [
+    {
+      "day": 1,
+      "rating_start": 900,
+      "rating_target": 1050,
+      "rating_gain": 150,
+      "hours": 11,
+      "puzzles_target": 340,
+      "focus": "foundation",
+      "description": "Master fundamental tactical patterns"
+    },
+    {
+      "day": 2,
+      "rating_start": 1050,
+      "rating_target": 1200,
+      "rating_gain": 150,
+      "hours": 11,
+      "puzzles_target": 370,
+      "focus": "patterns",
+      "description": "Expand tactical vocabulary"
+    },
+    {
+      "day": 3,
+      "rating_start": 1200,
+      "rating_target": 1350,
+      "rating_gain": 150,
+      "hours": 12,
+      "puzzles_target": 390,
+      "focus": "combinations",
+      "description": "Multi-move tactical sequences"
+    },
+    {
+      "day": 4,
+      "rating_start": 1350,
+      "rating_target": 1500,
+      "rating_gain": 150,
+      "hours": 12,
+      "puzzles_target": 420,
+      "focus": "advanced",
+      "description": "Expert-level patterns"
+    },
+    {
+      "day": 5,
+      "rating_start": 1500,
+      "rating_target": 1600,
+      "rating_gain": 100,
+      "hours": 10,
+      "puzzles_target": 350,
+      "focus": "mastery",
+      "description": "Consolidation and speed"
+    }
+  ],
+
+  "theme_pools": {
+    "foundation": {
+      "rating_range": [600, 1100],
+      "themes": [
+        {
+          "id": "fork",
+          "name": "Forks",
+          "priority": "high",
+          "min_puzzles": 40,
+          "target_mastery": 85,
+          "description": "Attack multiple pieces simultaneously"
+        },
+        {
+          "id": "pin",
+          "name": "Pins",
+          "priority": "high",
+          "min_puzzles": 40,
+          "target_mastery": 85,
+          "description": "Immobilize pieces against valuable targets"
+        },
+        {
+          "id": "skewer",
+          "name": "Skewers",
+          "priority": "medium",
+          "min_puzzles": 30,
+          "target_mastery": 80,
+          "description": "Attack through one piece to another"
+        },
+        {
+          "id": "hangingPiece",
+          "name": "Hanging Pieces",
+          "priority": "high",
+          "min_puzzles": 30,
+          "target_mastery": 90,
+          "description": "Capture undefended pieces"
+        },
+        {
+          "id": "mateIn1",
+          "name": "Checkmate in 1",
+          "priority": "high",
+          "min_puzzles": 40,
+          "target_mastery": 90,
+          "description": "Deliver immediate checkmate"
+        }
+      ]
+    },
+
+    "patterns": {
+      "rating_range": [900, 1300],
+      "themes": [
+        {
+          "id": "discoveredAttack",
+          "name": "Discovered Attacks",
+          "priority": "high",
+          "min_puzzles": 40,
+          "target_mastery": 80,
+          "description": "Unleash hidden attackers"
+        },
+        {
+          "id": "deflection",
+          "name": "Deflection",
+          "priority": "high",
+          "min_puzzles": 35,
+          "target_mastery": 75,
+          "description": "Lure defenders away"
+        },
+        {
+          "id": "backRankMate",
+          "name": "Back Rank Mate",
+          "priority": "high",
+          "min_puzzles": 35,
+          "target_mastery": 80,
+          "description": "Exploit trapped kings"
+        },
+        {
+          "id": "mateIn2",
+          "name": "Mate in 2",
+          "priority": "high",
+          "min_puzzles": 50,
+          "target_mastery": 75,
+          "description": "Two-move checkmates"
+        },
+        {
+          "id": "attraction",
+          "name": "Attraction/Decoy",
+          "priority": "medium",
+          "min_puzzles": 30,
+          "target_mastery": 75,
+          "description": "Lure pieces to vulnerable squares"
+        }
+      ]
+    },
+
+    "combinations": {
+      "rating_range": [1100, 1450],
+      "themes": [
+        {
+          "id": "intermezzo",
+          "name": "Zwischenzug",
+          "priority": "high",
+          "min_puzzles": 40,
+          "target_mastery": 75,
+          "description": "In-between moves"
+        },
+        {
+          "id": "interference",
+          "name": "Interference",
+          "priority": "medium",
+          "min_puzzles": 30,
+          "target_mastery": 70,
+          "description": "Block enemy piece coordination"
+        },
+        {
+          "id": "clearance",
+          "name": "Clearance",
+          "priority": "medium",
+          "min_puzzles": 30,
+          "target_mastery": 70,
+          "description": "Clear lines for attack"
+        },
+        {
+          "id": "xRayAttack",
+          "name": "X-Ray Attacks",
+          "priority": "medium",
+          "min_puzzles": 30,
+          "target_mastery": 70,
+          "description": "Attack through pieces"
+        },
+        {
+          "id": "trappedPiece",
+          "name": "Trapped Pieces",
+          "priority": "high",
+          "min_puzzles": 35,
+          "target_mastery": 75,
+          "description": "Win trapped pieces"
+        }
+      ]
+    },
+
+    "advanced": {
+      "rating_range": [1250, 1600],
+      "themes": [
+        {
+          "id": "sacrifice",
+          "name": "Sacrifices",
+          "priority": "high",
+          "min_puzzles": 50,
+          "target_mastery": 70,
+          "description": "Material for positional advantage"
+        },
+        {
+          "id": "mateIn3",
+          "name": "Mate in 3",
+          "priority": "high",
+          "min_puzzles": 40,
+          "target_mastery": 70,
+          "description": "Three-move checkmates"
+        },
+        {
+          "id": "quietMove",
+          "name": "Quiet Moves",
+          "priority": "high",
+          "min_puzzles": 35,
+          "target_mastery": 65,
+          "description": "Subtle, powerful moves"
+        },
+        {
+          "id": "defensiveMove",
+          "name": "Defensive Resources",
+          "priority": "medium",
+          "min_puzzles": 35,
+          "target_mastery": 70,
+          "description": "Save difficult positions"
+        },
+        {
+          "id": "exposedKing",
+          "name": "Exposed King",
+          "priority": "high",
+          "min_puzzles": 35,
+          "target_mastery": 75,
+          "description": "Exploit king safety"
+        }
+      ]
+    },
+
+    "mastery": {
+      "rating_range": [1400, 1750],
+      "themes": [
+        {
+          "id": "crushing",
+          "name": "Crushing Moves",
+          "priority": "high",
+          "min_puzzles": 60,
+          "target_mastery": 70,
+          "description": "Decisive tactical blows"
+        },
+        {
+          "id": "master",
+          "name": "Master Level",
+          "priority": "high",
+          "min_puzzles": 50,
+          "target_mastery": 65,
+          "description": "Master-level tactics"
+        },
+        {
+          "id": "advancedPawn",
+          "name": "Advanced Pawns",
+          "priority": "medium",
+          "min_puzzles": 30,
+          "target_mastery": 70,
+          "description": "Pawn breakthrough tactics"
+        }
+      ]
+    }
+  },
+
+  "speed_modes": {
+    "learning": {
+      "time_limit": 60,
+      "success_target": 70,
+      "description": "Learning new patterns (60s)"
+    },
+    "practice": {
+      "time_limit": 40,
+      "success_target": 75,
+      "description": "Reinforcing patterns (40s)"
+    },
+    "speed": {
+      "time_limit": 20,
+      "success_target": 70,
+      "description": "Pattern drills (20s)"
+    },
+    "blitz": {
+      "time_limit": 10,
+      "success_target": 65,
+      "description": "Instinct mode (10s)"
+    },
+    "ultra": {
+      "time_limit": 5,
+      "success_target": 60,
+      "description": "Pure recognition (5s)"
+    }
+  },
+
+  "session_structure": {
+    "morning": {
+      "hours": 4,
+      "mode": "learning",
+      "focus": "new_themes",
+      "puzzle_ratio": 0.35
+    },
+    "afternoon": {
+      "hours": 4,
+      "mode": "practice",
+      "focus": "reinforcement",
+      "puzzle_ratio": 0.35
+    },
+    "evening": {
+      "hours": 3,
+      "mode": "speed",
+      "focus": "speed_drills_and_review",
+      "puzzle_ratio": 0.30
+    }
+  },
+
+  "adaptive_algorithm": {
+    "description": "How the system selects next puzzles",
+    "steps": [
+      "1. Measure performance on each theme (running stats)",
+      "2. Identify themes below acceptable threshold (70%)",
+      "3. Queue weak themes with 1.5x normal puzzle count",
+      "4. Skip/reduce themes above mastery threshold (85%)",
+      "5. Mix 70% weakness focus + 20% maintenance + 10% new",
+      "6. Retest weak themes every 20 puzzles",
+      "7. Adjust difficulty based on success rate",
+      "8. Speed up when success >80%, slow down when <60%"
+    ]
+  }
+}
