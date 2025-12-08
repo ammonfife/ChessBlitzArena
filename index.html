@@ -100,6 +100,59 @@
             -webkit-text-fill-color: var(--gold);
         }
 
+        /* Profile Selector */
+        .profile-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 25px;
+        }
+
+        .profile-selector select {
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: 1px solid rgba(108, 92, 231, 0.5);
+            border-radius: 12px;
+            padding: 6px 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .profile-selector select:hover {
+            border-color: var(--primary);
+            background: rgba(108, 92, 231, 0.2);
+        }
+
+        .profile-selector select option {
+            background: var(--dark);
+            color: white;
+        }
+
+        .profile-btn {
+            background: rgba(108, 92, 231, 0.3);
+            border: none;
+            color: white;
+            font-size: 16px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profile-btn:hover {
+            background: var(--primary);
+            transform: rotate(90deg);
+        }
+
         /* Stats Bar */
         .stats-bar {
             display: flex;
@@ -851,6 +904,173 @@
             box-shadow: 0 0 20px rgba(108, 92, 231, 0.5);
         }
 
+        /* Profile Management Modal */
+        #profile-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        #profile-modal .modal-content {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 2px solid var(--primary);
+            box-shadow: 0 30px 100px rgba(108, 92, 231, 0.5);
+        }
+
+        #profile-modal h2 {
+            color: var(--gold);
+            margin-bottom: 25px;
+            font-size: 28px;
+        }
+
+        .profile-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .profile-section h3 {
+            color: var(--secondary);
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .profile-section input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(108, 92, 231, 0.5);
+            border-radius: 8px;
+            padding: 12px;
+            color: white;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .profile-section input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(108, 92, 231, 0.1);
+        }
+
+        .profile-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(108, 92, 231, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .profile-item.active {
+            border-color: var(--gold);
+            background: rgba(253, 203, 110, 0.1);
+        }
+
+        .profile-item.archived {
+            opacity: 0.6;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .profile-info {
+            flex: 1;
+        }
+
+        .profile-name {
+            font-weight: 700;
+            font-size: 16px;
+            color: white;
+            margin-bottom: 4px;
+        }
+
+        .profile-meta {
+            font-size: 12px;
+            color: var(--light);
+            opacity: 0.7;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .profile-actions button {
+            background: rgba(108, 92, 231, 0.3);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .profile-actions button:hover {
+            background: var(--primary);
+        }
+
+        .profile-actions button.danger {
+            background: rgba(255, 0, 0, 0.3);
+        }
+
+        .profile-actions button.danger:hover {
+            background: rgba(255, 0, 0, 0.6);
+        }
+
+        .btn-primary, .btn-secondary {
+            background: var(--primary);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .btn-primary:hover, .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(108, 92, 231, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(108, 92, 231, 0.5);
+        }
+
+        .close-modal {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            transition: all 0.2s;
+        }
+
+        .close-modal:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
         .assessment-dot.correct {
             background: var(--success);
         }
@@ -1096,6 +1316,15 @@
     <!-- Header -->
     <header class="header">
         <div class="logo">Chess<span>Blitz</span>Arena</div>
+
+        <!-- Profile Selector -->
+        <div class="profile-selector">
+            <span class="stat-icon">👤</span>
+            <select id="profile-dropdown" onchange="switchProfile(this.value)">
+                <!-- Populated by JS -->
+            </select>
+            <button class="profile-btn" onclick="showProfileManagement()">⚙️</button>
+        </div>
 
         <div class="stats-bar">
             <div class="stat-item coins">
@@ -1372,6 +1601,46 @@
             <div class="coach-text" id="coach-text"></div>
         </div>
         <button class="coach-close" onclick="closeCoach()">✕</button>
+    </div>
+
+    <!-- Profile Management Modal -->
+    <div id="profile-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <h2>👤 Profile Management</h2>
+
+            <!-- Create New Profile -->
+            <div class="profile-section">
+                <h3>Create New Profile</h3>
+                <input type="text" id="new-profile-name" placeholder="Enter player name..." maxlength="30">
+                <button onclick="createNewProfile()" class="btn-primary">Create Profile</button>
+            </div>
+
+            <!-- Active Profiles -->
+            <div class="profile-section">
+                <h3>Your Profiles</h3>
+                <div id="profile-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Archived Profiles (Recoverable) -->
+            <div class="profile-section">
+                <h3>Archived Profiles <span style="color: var(--gold); font-size: 14px;">(Recoverable)</span></h3>
+                <div id="archived-profile-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Export/Import -->
+            <div class="profile-section">
+                <h3>Backup & Recovery</h3>
+                <button onclick="exportAllProfiles()" class="btn-secondary">📥 Export All Profiles</button>
+                <button onclick="document.getElementById('import-file').click()" class="btn-secondary">📤 Import Profiles</button>
+                <input type="file" id="import-file" accept=".json" style="display:none" onchange="importProfiles(event)">
+            </div>
+
+            <button onclick="closeProfileManagement()" class="close-modal">Close</button>
+        </div>
     </div>
 
     <script>
@@ -2064,8 +2333,11 @@
             await loadPuzzleDatabase();
             await loadBootcampCurriculum();
 
+            // Initialize profile system (creates default profile if none exist)
+            initializeProfiles();
+
             createParticles();
-            loadGameState();
+            // loadGameState(); // Removed - now handled by profile system
             renderBoard();
             updateAllDisplays();
             showWelcomeModal();
@@ -3437,6 +3709,439 @@ Maximum 2 sentences.`;
         // Close coaching toast
         function closeCoach() {
             document.getElementById('coaching-toast').style.display = 'none';
+        }
+
+        // ==================== PROFILE MANAGEMENT SYSTEM ====================
+        // Supports multiple user profiles with safe deletion and recovery
+
+        let currentProfileId = null;
+        const PROFILE_STORAGE_KEY = 'chessBlitzProfiles';
+        const ACTIVE_PROFILE_KEY = 'chessBlitzActiveProfile';
+
+        // Load all profiles from localStorage
+        function loadAllProfiles() {
+            const stored = localStorage.getItem(PROFILE_STORAGE_KEY);
+            return stored ? JSON.parse(stored) : {
+                profiles: {},
+                archived: {}
+            };
+        }
+
+        // Save all profiles to localStorage
+        function saveAllProfiles(data) {
+            localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(data));
+        }
+
+        // Initialize profile system on app start
+        function initializeProfiles() {
+            const allProfiles = loadAllProfiles();
+
+            // Check if there are any profiles
+            const profileIds = Object.keys(allProfiles.profiles);
+
+            if (profileIds.length === 0) {
+                // No profiles exist - create default profile
+                createNewProfile('Player 1', true);
+            } else {
+                // Load the active profile or first available
+                const activeId = localStorage.getItem(ACTIVE_PROFILE_KEY);
+                if (activeId && allProfiles.profiles[activeId]) {
+                    loadProfile(activeId);
+                } else {
+                    loadProfile(profileIds[0]);
+                }
+            }
+
+            refreshProfileDropdown();
+        }
+
+        // Create a new profile
+        function createNewProfile(name = null, skipPrompt = false) {
+            if (!name && !skipPrompt) {
+                name = document.getElementById('new-profile-name').value.trim();
+            }
+
+            if (!name) {
+                alert('Please enter a profile name');
+                return;
+            }
+
+            const allProfiles = loadAllProfiles();
+            const profileId = 'profile_' + Date.now();
+
+            // Create new profile with fresh game state
+            allProfiles.profiles[profileId] = {
+                id: profileId,
+                name: name,
+                createdDate: new Date().toISOString(),
+                lastPlayed: new Date().toISOString(),
+                gameState: getDefaultGameState()
+            };
+
+            saveAllProfiles(allProfiles);
+            loadProfile(profileId);
+            refreshProfileDropdown();
+            refreshProfileManagementUI();
+
+            if (!skipPrompt) {
+                document.getElementById('new-profile-name').value = '';
+            }
+
+            logger.log('success', 'Profile created', { name, id: profileId });
+        }
+
+        // Get default game state for new profiles
+        function getDefaultGameState() {
+            return {
+                coins: 500,
+                rating: 800,
+                level: 1,
+                xp: 0,
+                xpToNextLevel: 100,
+                puzzlesAttempted: 0,
+                puzzlesSolved: 0,
+                currentStreak: 0,
+                bestStreak: 0,
+                hintsUsed: 0,
+                totalTime: 0,
+                averageTime: 0,
+                mode: null,
+                inBootcamp: false,
+                bootcampDay: 0,
+                themeStats: {},
+                sessionPuzzles: [],
+                dailyStats: {}
+            };
+        }
+
+        // Load a profile and set it as active
+        function loadProfile(profileId) {
+            const allProfiles = loadAllProfiles();
+            const profile = allProfiles.profiles[profileId];
+
+            if (!profile) {
+                logger.log('error', 'Profile not found', { profileId });
+                return;
+            }
+
+            currentProfileId = profileId;
+            localStorage.setItem(ACTIVE_PROFILE_KEY, profileId);
+
+            // Load the profile's game state into the global gameState
+            Object.assign(gameState, profile.gameState);
+
+            // Update last played timestamp
+            profile.lastPlayed = new Date().toISOString();
+            allProfiles.profiles[profileId] = profile;
+            saveAllProfiles(allProfiles);
+
+            // Refresh UI
+            updateUI();
+            refreshProfileDropdown();
+
+            logger.log('success', 'Profile loaded', { name: profile.name, id: profileId });
+        }
+
+        // Switch profile from dropdown
+        function switchProfile(profileId) {
+            if (profileId === currentProfileId) return;
+
+            // Save current profile's game state before switching
+            if (currentProfileId) {
+                saveCurrentProfile();
+            }
+
+            loadProfile(profileId);
+        }
+
+        // Save current profile's game state
+        function saveCurrentProfile() {
+            if (!currentProfileId) return;
+
+            const allProfiles = loadAllProfiles();
+            const profile = allProfiles.profiles[currentProfileId];
+
+            if (profile) {
+                profile.gameState = { ...gameState };
+                profile.lastPlayed = new Date().toISOString();
+                allProfiles.profiles[currentProfileId] = profile;
+                saveAllProfiles(allProfiles);
+            }
+        }
+
+        // Archive a profile (soft delete - recoverable)
+        function archiveProfile(profileId) {
+            if (profileId === currentProfileId) {
+                alert('Cannot archive the currently active profile. Please switch to another profile first.');
+                return;
+            }
+
+            // Double confirmation for safety
+            const allProfiles = loadAllProfiles();
+            const profile = allProfiles.profiles[profileId];
+
+            if (!profile) return;
+
+            const confirmed = confirm(
+                `⚠️ ARCHIVE PROFILE "${profile.name}"?\n\n` +
+                `This will move the profile to archived (recoverable).\n\n` +
+                `The profile can be restored later from the Archived Profiles section.\n\n` +
+                `Continue?`
+            );
+
+            if (!confirmed) return;
+
+            // Move to archived
+            allProfiles.archived[profileId] = {
+                ...profile,
+                archivedDate: new Date().toISOString()
+            };
+            delete allProfiles.profiles[profileId];
+
+            saveAllProfiles(allProfiles);
+            refreshProfileManagementUI();
+
+            logger.log('info', 'Profile archived', { name: profile.name, id: profileId });
+        }
+
+        // Restore an archived profile
+        function restoreProfile(profileId) {
+            const allProfiles = loadAllProfiles();
+            const profile = allProfiles.archived[profileId];
+
+            if (!profile) return;
+
+            // Remove archived metadata and restore
+            delete profile.archivedDate;
+            allProfiles.profiles[profileId] = profile;
+            delete allProfiles.archived[profileId];
+
+            saveAllProfiles(allProfiles);
+            refreshProfileDropdown();
+            refreshProfileManagementUI();
+
+            logger.log('success', 'Profile restored', { name: profile.name, id: profileId });
+        }
+
+        // PERMANENT delete (requires triple confirmation)
+        function permanentlyDeleteProfile(profileId) {
+            const allProfiles = loadAllProfiles();
+            const profile = allProfiles.archived[profileId];
+
+            if (!profile) return;
+
+            const step1 = confirm(
+                `🚨 PERMANENT DELETE WARNING\n\n` +
+                `You are about to PERMANENTLY DELETE the profile "${profile.name}".\n\n` +
+                `This action CANNOT be undone.\n\n` +
+                `Are you sure you want to continue?`
+            );
+
+            if (!step1) return;
+
+            const step2 = confirm(
+                `⚠️ SECOND CONFIRMATION\n\n` +
+                `Profile: "${profile.name}"\n` +
+                `Rating: ${profile.gameState.rating}\n` +
+                `Puzzles Solved: ${profile.gameState.puzzlesSolved}\n\n` +
+                `This data will be PERMANENTLY LOST.\n\n` +
+                `Continue with deletion?`
+            );
+
+            if (!step2) return;
+
+            const step3 = prompt(
+                `FINAL CONFIRMATION\n\n` +
+                `Type the profile name "${profile.name}" exactly to confirm permanent deletion:`
+            );
+
+            if (step3 !== profile.name) {
+                alert('Name did not match. Deletion cancelled.');
+                return;
+            }
+
+            // Permanently delete
+            delete allProfiles.archived[profileId];
+            saveAllProfiles(allProfiles);
+            refreshProfileManagementUI();
+
+            logger.log('warn', 'Profile permanently deleted', { name: profile.name, id: profileId });
+            alert(`Profile "${profile.name}" has been permanently deleted.`);
+        }
+
+        // Export all profiles to JSON file
+        function exportAllProfiles() {
+            const allProfiles = loadAllProfiles();
+            const exportData = {
+                ...allProfiles,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            };
+
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ChessBlitz_Profiles_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            logger.log('success', 'Profiles exported', { count: Object.keys(allProfiles.profiles).length });
+        }
+
+        // Import profiles from JSON file
+        function importProfiles(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+
+                    if (!imported.profiles) {
+                        throw new Error('Invalid profile export file');
+                    }
+
+                    const confirmed = confirm(
+                        `Import ${Object.keys(imported.profiles).length} profiles?\n\n` +
+                        `This will NOT delete your existing profiles.\n` +
+                        `Duplicate profile IDs will be skipped.`
+                    );
+
+                    if (!confirmed) return;
+
+                    const allProfiles = loadAllProfiles();
+                    let importedCount = 0;
+
+                    // Import profiles (skip duplicates)
+                    for (const [id, profile] of Object.entries(imported.profiles)) {
+                        if (!allProfiles.profiles[id]) {
+                            allProfiles.profiles[id] = profile;
+                            importedCount++;
+                        }
+                    }
+
+                    // Import archived profiles
+                    for (const [id, profile] of Object.entries(imported.archived || {})) {
+                        if (!allProfiles.archived[id]) {
+                            allProfiles.archived[id] = profile;
+                        }
+                    }
+
+                    saveAllProfiles(allProfiles);
+                    refreshProfileDropdown();
+                    refreshProfileManagementUI();
+
+                    logger.log('success', 'Profiles imported', { count: importedCount });
+                    alert(`Successfully imported ${importedCount} profiles!`);
+
+                } catch (error) {
+                    logger.log('error', 'Failed to import profiles', { error: error.message });
+                    alert('Failed to import profiles. Please check the file format.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Refresh the profile dropdown in the header
+        function refreshProfileDropdown() {
+            const dropdown = document.getElementById('profile-dropdown');
+            const allProfiles = loadAllProfiles();
+
+            dropdown.innerHTML = '';
+
+            // Add all active profiles
+            for (const [id, profile] of Object.entries(allProfiles.profiles)) {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = profile.name;
+                if (id === currentProfileId) {
+                    option.selected = true;
+                }
+                dropdown.appendChild(option);
+            }
+        }
+
+        // Show profile management modal
+        function showProfileManagement() {
+            document.getElementById('profile-modal').style.display = 'flex';
+            refreshProfileManagementUI();
+        }
+
+        // Close profile management modal
+        function closeProfileManagement() {
+            document.getElementById('profile-modal').style.display = 'none';
+        }
+
+        // Refresh the profile management UI lists
+        function refreshProfileManagementUI() {
+            const allProfiles = loadAllProfiles();
+
+            // Active profiles list
+            const profileList = document.getElementById('profile-list');
+            profileList.innerHTML = '';
+
+            if (Object.keys(allProfiles.profiles).length === 0) {
+                profileList.innerHTML = '<p style="color: var(--light); opacity: 0.5;">No profiles yet. Create one above!</p>';
+            } else {
+                for (const [id, profile] of Object.entries(allProfiles.profiles)) {
+                    const isActive = id === currentProfileId;
+                    const item = document.createElement('div');
+                    item.className = `profile-item ${isActive ? 'active' : ''}`;
+                    item.innerHTML = `
+                        <div class="profile-info">
+                            <div class="profile-name">${profile.name} ${isActive ? '⭐' : ''}</div>
+                            <div class="profile-meta">
+                                Rating: ${profile.gameState.rating} |
+                                Puzzles: ${profile.gameState.puzzlesSolved}/${profile.gameState.puzzlesAttempted} |
+                                Created: ${new Date(profile.createdDate).toLocaleDateString()}
+                            </div>
+                        </div>
+                        <div class="profile-actions">
+                            ${!isActive ? `<button onclick="switchProfile('${id}')">Switch</button>` : ''}
+                            ${!isActive ? `<button class="danger" onclick="archiveProfile('${id}')">Archive</button>` : ''}
+                        </div>
+                    `;
+                    profileList.appendChild(item);
+                }
+            }
+
+            // Archived profiles list
+            const archivedList = document.getElementById('archived-profile-list');
+            archivedList.innerHTML = '';
+
+            if (Object.keys(allProfiles.archived).length === 0) {
+                archivedList.innerHTML = '<p style="color: var(--light); opacity: 0.5;">No archived profiles</p>';
+            } else {
+                for (const [id, profile] of Object.entries(allProfiles.archived)) {
+                    const item = document.createElement('div');
+                    item.className = 'profile-item archived';
+                    item.innerHTML = `
+                        <div class="profile-info">
+                            <div class="profile-name">${profile.name} (Archived)</div>
+                            <div class="profile-meta">
+                                Rating: ${profile.gameState.rating} |
+                                Archived: ${new Date(profile.archivedDate).toLocaleDateString()}
+                            </div>
+                        </div>
+                        <div class="profile-actions">
+                            <button onclick="restoreProfile('${id}')">Restore</button>
+                            <button class="danger" onclick="permanentlyDeleteProfile('${id}')">Permanently Delete</button>
+                        </div>
+                    `;
+                    archivedList.appendChild(item);
+                }
+            }
+        }
+
+        // Override existing saveGameState to also save to current profile
+        const originalSaveGameState = saveGameState;
+        function saveGameState() {
+            originalSaveGameState(); // Call the original function
+            saveCurrentProfile(); // Also save to profile system
         }
 
         // Initialize Chess.js instance for current puzzle
