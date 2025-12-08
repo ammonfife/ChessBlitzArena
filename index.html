@@ -452,6 +452,63 @@
             75% { transform: translateX(5px); background: var(--fire); }
         }
 
+        .square.illegal {
+            animation: illegal-shake 0.5s ease;
+        }
+
+        @keyframes illegal-shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); background: #ff6b6b; }
+            20%, 40%, 60%, 80% { transform: translateX(3px); background: #ff6b6b; }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+        }
+
+        .square.legal-move {
+            position: relative;
+        }
+
+        .square.legal-move::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30%;
+            height: 30%;
+            background: rgba(108, 92, 231, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .square.legal-move.has-piece::after {
+            width: 80%;
+            height: 80%;
+            background: transparent;
+            border: 4px solid rgba(108, 92, 231, 0.6);
+            border-radius: 50%;
+        }
+
         /* Theme variations */
         .board-container.theme-neon .square.light { background: #1a1a2e; }
         .board-container.theme-neon .square.dark { background: #0f0f1a; }
@@ -1511,7 +1568,10 @@
             selectedSquare: null,
             timer: 30,
             timerInterval: null,
-            moveHistory: []
+            moveHistory: [],
+
+            // Chess.js instance for move validation
+            chessInstance: null
         };
 
         // ==================== PUZZLE DATABASE ====================
@@ -1870,13 +1930,123 @@
                         square.textContent = pieceMap[piece];
                         // Add color class based on piece case (uppercase = white, lowercase = black)
                         const isWhitePiece = piece === piece.toUpperCase();
+                        const isBlackPiece = piece === piece.toLowerCase() && piece !== piece.toUpperCase();
                         square.classList.add(isWhitePiece ? 'white-piece' : 'black-piece');
+
+                        // Make piece draggable only if it's the player's turn
+                        const isBlackToMove = gameState.currentPuzzle.toMove === 'Black';
+                        if ((isBlackToMove && isBlackPiece) || (!isBlackToMove && isWhitePiece)) {
+                            square.draggable = true;
+                            square.style.cursor = 'grab';
+
+                            square.addEventListener('dragstart', (e) => handleDragStart(e, actualRow, displayCol));
+                            square.addEventListener('dragend', (e) => handleDragEnd(e));
+                        }
                     }
 
+                    // Make all squares droppable
+                    square.addEventListener('dragover', (e) => handleDragOver(e));
+                    square.addEventListener('drop', (e) => handleDrop(e, actualRow, displayCol));
+
                     square.addEventListener('click', () => handleSquareClick(actualRow, displayCol));
+
+                    // Add hover to show legal moves
+                    square.addEventListener('mouseenter', () => handleSquareHover(actualRow, displayCol));
+                    square.addEventListener('mouseleave', () => clearLegalMoveHighlights());
+
                     boardElement.appendChild(square);
                 }
             }
+        }
+
+        // Show legal moves when hovering over a piece
+        function handleSquareHover(row, col) {
+            if (!gameState.currentPuzzle) return;
+
+            const board = fenToBoard(gameState.currentPuzzle.fen);
+            const piece = board[row][col];
+            const isWhiteToMove = gameState.currentPuzzle.toMove === 'White';
+
+            if (piece) {
+                const isWhitePiece = piece === piece.toUpperCase();
+                const isBlackPiece = piece === piece.toLowerCase() && piece !== piece.toUpperCase();
+
+                // Only show legal moves for pieces that match the side to move
+                if ((isWhiteToMove && isWhitePiece) || (!isWhiteToMove && isBlackPiece)) {
+                    const legalMoves = getLegalMoves(row, col);
+
+                    legalMoves.forEach(move => {
+                        const targetSquare = document.querySelector(`.square[data-row="${move.toRow}"][data-col="${move.toCol}"]`);
+                        if (targetSquare) {
+                            targetSquare.classList.add('legal-move');
+                            // Check if target square has a piece (for capture highlight)
+                            if (targetSquare.textContent) {
+                                targetSquare.classList.add('has-piece');
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        // Clear all legal move highlights
+        function clearLegalMoveHighlights() {
+            const squares = document.querySelectorAll('.square');
+            squares.forEach(sq => {
+                sq.classList.remove('legal-move', 'has-piece');
+            });
+        }
+
+        // Drag and drop handlers
+        let draggedPiece = null;
+
+        function handleDragStart(e, row, col) {
+            draggedPiece = { row, col };
+            e.target.style.opacity = '0.4';
+            e.target.style.cursor = 'grabbing';
+
+            // Show legal moves when dragging starts
+            handleSquareHover(row, col);
+
+            logger.trackAction('drag_start', { row, col });
+        }
+
+        function handleDragEnd(e) {
+            e.target.style.opacity = '1';
+            e.target.style.cursor = 'grab';
+
+            // Clear legal move highlights
+            clearLegalMoveHighlights();
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault(); // Necessary to allow drop
+            return false;
+        }
+
+        function handleDrop(e, toRow, toCol) {
+            e.stopPropagation();
+            e.preventDefault();
+
+            if (!draggedPiece) return;
+
+            const fromRow = draggedPiece.row;
+            const fromCol = draggedPiece.col;
+
+            // Don't do anything if dropping on same square
+            if (fromRow === toRow && fromCol === toCol) {
+                draggedPiece = null;
+                return;
+            }
+
+            const move = squareToAlgebraic(fromRow, fromCol) + squareToAlgebraic(toRow, toCol);
+            logger.trackAction('drop_move', { from: { row: fromRow, col: fromCol }, to: { row: toRow, col: toCol }, move });
+
+            // Check the move
+            checkMove(move, toRow, toCol);
+
+            draggedPiece = null;
+            return false;
         }
 
         function handleSquareClick(row, col) {
@@ -1932,19 +2102,53 @@
 
         function checkMove(move, toRow, toCol) {
             const puzzle = gameState.currentPuzzle;
-            const isCorrect = puzzle.solution.includes(move);
 
             // Use data attributes to find the correct square (handles board flipping)
             const targetSquare = document.querySelector(`.square[data-row="${toRow}"][data-col="${toCol}"]`);
 
-            if (isCorrect) {
-                targetSquare.classList.add('correct');
-                setTimeout(() => targetSquare.classList.remove('correct'), 500);
-                handleCorrectAnswer();
+            // First, validate if the move is legal according to chess rules
+            if (gameState.chessInstance) {
+                const moveResult = gameState.chessInstance.move({
+                    from: move.substring(0, 2),
+                    to: move.substring(2, 4),
+                    promotion: 'q' // Always promote to queen for simplicity
+                });
+
+                if (!moveResult) {
+                    // Illegal move - shake and show error
+                    targetSquare.classList.add('illegal');
+                    setTimeout(() => targetSquare.classList.remove('illegal'), 500);
+                    showFeedback('That move is not legal! Try again.', 'error');
+                    logger.trackAction('illegal_move', { move });
+                    return;
+                }
+
+                // Move is legal - now check if it's the correct solution
+                const isCorrect = puzzle.solution.includes(move);
+
+                if (isCorrect) {
+                    targetSquare.classList.add('correct');
+                    setTimeout(() => targetSquare.classList.remove('correct'), 500);
+                    handleCorrectAnswer();
+                } else {
+                    // Legal move but wrong solution - undo the move in chess instance
+                    gameState.chessInstance.undo();
+                    targetSquare.classList.add('wrong');
+                    setTimeout(() => targetSquare.classList.remove('wrong'), 500);
+                    handleWrongAnswer();
+                }
             } else {
-                targetSquare.classList.add('wrong');
-                setTimeout(() => targetSquare.classList.remove('wrong'), 500);
-                handleWrongAnswer();
+                // Fallback if Chess.js not available - just check solution
+                const isCorrect = puzzle.solution.includes(move);
+                if (isCorrect) {
+                    targetSquare.classList.add('correct');
+                    setTimeout(() => targetSquare.classList.remove('correct'), 500);
+                    handleCorrectAnswer();
+                } else {
+                    targetSquare.classList.add('wrong');
+                    setTimeout(() => targetSquare.classList.remove('wrong'), 500);
+                    handleWrongAnswer();
+                }
             }
         }
 
@@ -2127,6 +2331,7 @@
             gameState.currentPuzzle = puzzle;
             gameState.puzzlesAttempted++;
 
+            initializeChessInstance();
             renderBoard();
             updatePuzzleInfo();
             startTimer();
@@ -2153,9 +2358,35 @@
             gameState.currentPuzzle = puzzle;
             gameState.puzzlesAttempted++;
 
+            initializeChessInstance();
             renderBoard();
             updatePuzzleInfo();
             startTimer();
+        }
+
+        // Initialize Chess.js instance for current puzzle
+        function initializeChessInstance() {
+            if (typeof Chess !== 'undefined' && gameState.currentPuzzle) {
+                gameState.chessInstance = new Chess(gameState.currentPuzzle.fen);
+                logger.log('info', 'Chess instance initialized', { fen: gameState.currentPuzzle.fen });
+            } else {
+                logger.log('error', 'Chess.js not available or no puzzle loaded');
+            }
+        }
+
+        // Get legal moves for a piece at a given position
+        function getLegalMoves(row, col) {
+            if (!gameState.chessInstance) return [];
+
+            const square = squareToAlgebraic(row, col);
+            const moves = gameState.chessInstance.moves({ square: square, verbose: true });
+
+            return moves.map(move => ({
+                from: move.from,
+                to: move.to,
+                toRow: 8 - parseInt(move.to[1]),
+                toCol: move.to.charCodeAt(0) - 'a'.charCodeAt(0)
+            }));
         }
 
         // ==================== TIMER ====================
@@ -2403,6 +2634,40 @@
                 gameState.coins += 500;
                 spawnConfetti();
             }
+        }
+
+        // Show feedback message (toast notification)
+        function showFeedback(message, type = 'info') {
+            // Remove any existing feedback
+            const existing = document.querySelector('.feedback-toast');
+            if (existing) existing.remove();
+
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `feedback-toast ${type}`;
+            toast.textContent = message;
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: ${type === 'error' ? '#ff6b6b' : type === 'success' ? '#51cf66' : '#4dabf7'};
+                color: white;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-weight: bold;
+                z-index: 10000;
+                animation: slideDown 0.3s ease;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            `;
+
+            document.body.appendChild(toast);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.style.animation = 'slideUp 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         }
 
         // ==================== ASSESSMENT ====================
