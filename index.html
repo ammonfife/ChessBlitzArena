@@ -416,7 +416,8 @@
         }
 
         .square.selected {
-            box-shadow: inset 0 0 0 4px var(--primary);
+            box-shadow: inset 0 0 0 4px var(--primary), 0 0 10px var(--primary);
+            background-color: rgba(108, 92, 231, 0.3) !important;
         }
 
         .square.hint {
@@ -1331,20 +1332,31 @@
                 this.engine = null;
                 this.isReady = false;
                 this.currentAnalysis = null;
+                this.initAttempts = 0;
+                this.maxInitAttempts = 10;
+                this.initRetryDelay = 500; // ms
                 this.init();
             }
 
             init() {
+                this.initAttempts++;
                 try {
                     if (typeof STOCKFISH === 'function') {
                         this.engine = STOCKFISH();
                         this.setupEngine();
-                        logger.log('success', 'Stockfish AI engine initialized');
+                        logger.log('success', `Stockfish AI engine initialized (attempt ${this.initAttempts})`);
+                    } else if (this.initAttempts < this.maxInitAttempts) {
+                        // CDN may still be loading, retry after delay
+                        logger.log('info', `Stockfish not ready, retrying... (attempt ${this.initAttempts}/${this.maxInitAttempts})`);
+                        setTimeout(() => this.init(), this.initRetryDelay);
                     } else {
-                        logger.log('warn', 'Stockfish not available, AI hints disabled');
+                        logger.log('warn', 'Stockfish not available after max retries, AI hints disabled');
                     }
                 } catch (e) {
                     logger.log('error', 'Failed to initialize Stockfish', { error: e.message });
+                    if (this.initAttempts < this.maxInitAttempts) {
+                        setTimeout(() => this.init(), this.initRetryDelay);
+                    }
                 }
             }
 
@@ -1382,9 +1394,36 @@
                 this.engine.postMessage('isready');
             }
 
+            async waitForReady(timeout = 5000) {
+                if (this.isReady) return true;
+                return new Promise((resolve) => {
+                    const startTime = Date.now();
+                    const checkInterval = setInterval(() => {
+                        if (this.isReady) {
+                            clearInterval(checkInterval);
+                            resolve(true);
+                        } else if (Date.now() - startTime > timeout) {
+                            clearInterval(checkInterval);
+                            logger.log('warn', 'AI engine wait timeout');
+                            resolve(false);
+                        }
+                    }, 100);
+                });
+            }
+
             async analyzePosition(fen, depth = 15) {
-                if (!this.engine || !this.isReady) {
-                    logger.log('warn', 'AI engine not ready');
+                // Wait for engine to be ready (with timeout)
+                if (!this.isReady) {
+                    logger.log('info', 'Waiting for AI engine to be ready...');
+                    const ready = await this.waitForReady(5000);
+                    if (!ready) {
+                        logger.log('warn', 'AI engine not ready after waiting');
+                        return null;
+                    }
+                }
+
+                if (!this.engine) {
+                    logger.log('warn', 'AI engine not available');
                     return null;
                 }
 
@@ -1858,9 +1897,11 @@
                     // Only allow selecting pieces that match the side to move
                     if ((isWhiteToMove && isWhitePiece) || (!isWhiteToMove && isBlackPiece)) {
                         gameState.selectedSquare = { row, col };
-                        const squares = document.querySelectorAll('.square');
-                        const squareIndex = row * 8 + col;
-                        squares[squareIndex].classList.add('selected');
+                        // Use data attributes to find the correct square (handles board flipping)
+                        const square = document.querySelector(`.square[data-row="${row}"][data-col="${col}"]`);
+                        if (square) {
+                            square.classList.add('selected');
+                        }
                         logger.trackAction('piece_selected', { row, col, piece });
                     } else {
                         logger.trackAction('wrong_color_selected', { row, col, piece, expected: isWhiteToMove ? 'White' : 'Black' });
@@ -1893,8 +1934,8 @@
             const puzzle = gameState.currentPuzzle;
             const isCorrect = puzzle.solution.includes(move);
 
-            const squares = document.querySelectorAll('.square');
-            const targetSquare = squares[toRow * 8 + toCol];
+            // Use data attributes to find the correct square (handles board flipping)
+            const targetSquare = document.querySelector(`.square[data-row="${toRow}"][data-col="${toCol}"]`);
 
             if (isCorrect) {
                 targetSquare.classList.add('correct');

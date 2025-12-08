@@ -3,6 +3,33 @@
 ## Website URL
 http://chess.genomicdigital.com
 
+## CI/CD Integration
+
+### GitHub Actions Workflow
+Tests run automatically via GitHub Actions (`.github/workflows/e2b-tests.yml`):
+
+- **Daily**: Runs at 6 AM UTC every day
+- **On Push**: Runs when code is pushed to main/master
+- **On PR**: Runs on pull requests to main/master
+- **Manual**: Can be triggered manually from Actions tab
+
+### Workflow Features
+- Runs `test-live-site.py` against the live site
+- Captures screenshots on success and failure
+- Creates GitHub issues on test failures
+- Uploads test artifacts (screenshots, logs)
+
+### Viewing Test Results
+1. Go to repository → Actions tab
+2. Select "E2B Live Site Tests" workflow
+3. Click on a run to see details
+4. Download artifacts for screenshots and logs
+
+### Manual Workflow Trigger
+1. Go to Actions → E2B Live Site Tests
+2. Click "Run workflow" dropdown
+3. Select branch and click "Run workflow"
+
 ## Automated Testing
 
 ### Quick Test (Browser Console)
@@ -287,4 +314,97 @@ Console output: [Attached/Not attached]
 
 Additional notes:
 [Any other observations]
+```
+
+## Extending Tests
+
+### Adding New Tests to test-live-site.py
+
+The test script uses Selenium WebDriver. To add new tests:
+
+```python
+# Example: Add a new test for a specific feature
+print("\n🆕 Test X: Your new test...")
+try:
+    # Use WebDriverWait for elements that may take time to load
+    element = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.ID, 'your-element-id'))
+    )
+
+    # Execute JavaScript if needed
+    result = driver.execute_script("return yourFunction();")
+
+    # Assert expected behavior
+    if result == expected_value:
+        print("✅ Test passed")
+    else:
+        print(f"❌ Test failed: expected {expected_value}, got {result}")
+
+except Exception as e:
+    print(f"❌ Test error: {e}")
+```
+
+### Test Categories
+
+1. **Load Tests**: Verify page and assets load correctly
+2. **UI Tests**: Verify visual elements are present and styled
+3. **Interaction Tests**: Verify clicks and user actions work
+4. **Integration Tests**: Verify external dependencies (Chess.js, Stockfish)
+5. **Performance Tests**: Verify load times and responsiveness
+
+### Best Practices
+
+- Always use WebDriverWait instead of `time.sleep()` when possible
+- Use try/except blocks to handle test failures gracefully
+- Take screenshots on failure for debugging
+- Log descriptive messages with emojis for easy scanning
+- Keep tests independent (each test should not rely on others)
+
+### Running Tests Locally
+
+```bash
+# Install dependencies
+pip install selenium webdriver-manager
+
+# Run tests
+python test-live-site.py
+```
+
+### Adding Tests to CI/CD
+
+Tests in `test-live-site.py` automatically run in CI/CD. To add a new test file:
+
+1. Create your test file (e.g., `test-new-feature.py`)
+2. Update `.github/workflows/e2b-tests.yml` to run it:
+
+```yaml
+- name: Run new feature tests
+  run: python test-new-feature.py
+```
+
+## Performance Benchmarks
+
+Track these metrics over time:
+
+| Metric | Target | How to Measure |
+|--------|--------|----------------|
+| Page Load | < 3s | Browser DevTools Network tab |
+| First Paint | < 1.5s | Lighthouse audit |
+| Board Render | < 500ms | `chessDebug.getLogs()` timestamps |
+| Piece Click Response | < 100ms | Performance profiler |
+| AI Analysis | < 10s | Test script timing |
+
+## Redis Integration
+
+Test results can be logged to Redis for tracking:
+
+```bash
+# Log test start
+redis-cli SET "chess_blitz:test:last_run" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+# Log test result
+redis-cli SET "chess_blitz:test:last_result" "pass"  # or "fail"
+
+# View recent test results
+redis-cli LRANGE "chess_blitz:test:history" 0 -1
 ```
