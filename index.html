@@ -3163,10 +3163,23 @@
             showCoaching(message, title);
         }
 
-        // AI-powered coaching message generation
+        // AI-powered coaching message generation with Stockfish position analysis
         async function generateCoachingMessage(context) {
-            // Build prompt for LLM
-            const prompt = buildCoachingPrompt(context);
+            // Analyze position with Stockfish for context-aware coaching
+            const analysis = await aiEngine.analyzePosition(context.fen, 12);
+
+            // Extract piece positions from FEN for position-specific references
+            const positionInfo = extractPositionInfo(context.fen);
+
+            // Enhance context with Stockfish analysis and position info
+            const enhancedContext = {
+                ...context,
+                analysis: analysis,
+                positionInfo: positionInfo
+            };
+
+            // Build prompt for LLM with position analysis
+            const prompt = buildCoachingPrompt(enhancedContext);
 
             // Try to generate with AI, fallback to template if unavailable
             try {
@@ -3177,16 +3190,88 @@
             }
 
             // Fallback: Generate contextual message without AI API
-            return generateFallbackMessage(context);
+            return generateFallbackMessage(enhancedContext);
         }
 
-        // Build prompt for AI coaching
+        // Extract key piece positions and features from FEN
+        function extractPositionInfo(fen) {
+            if (!fen) return { pieces: [], features: [] };
+
+            const parts = fen.split(' ');
+            const board = parts[0];
+            const toMove = parts[1] === 'w' ? 'White' : 'Black';
+
+            const pieces = [];
+            const features = [];
+
+            // Parse board ranks (8th rank to 1st rank)
+            const ranks = board.split('/');
+
+            for (let rankIdx = 0; rankIdx < ranks.length; rankIdx++) {
+                const rank = ranks[rankIdx];
+                let fileIdx = 0;
+
+                for (let i = 0; i < rank.length; i++) {
+                    const char = rank[i];
+
+                    if (/[1-8]/.test(char)) {
+                        // Skip empty squares
+                        fileIdx += parseInt(char);
+                    } else {
+                        // Piece found
+                        const file = String.fromCharCode(97 + fileIdx); // a-h
+                        const rankNum = 8 - rankIdx; // 8-1
+                        const square = file + rankNum;
+
+                        const pieceTypes = {
+                            'K': 'King', 'Q': 'Queen', 'R': 'Rook',
+                            'B': 'Bishop', 'N': 'Knight', 'P': 'Pawn',
+                            'k': 'king', 'q': 'queen', 'r': 'rook',
+                            'b': 'bishop', 'n': 'knight', 'p': 'pawn'
+                        };
+
+                        const piece = {
+                            type: pieceTypes[char] || char,
+                            square: square,
+                            color: char === char.toUpperCase() ? 'White' : 'Black'
+                        };
+
+                        pieces.push(piece);
+
+                        // Note important pieces for potential reference
+                        if (char.toLowerCase() === 'k' || char.toLowerCase() === 'q' || char.toLowerCase() === 'n') {
+                            features.push(`${piece.color} ${piece.type} on ${square}`);
+                        }
+
+                        fileIdx++;
+                    }
+                }
+            }
+
+            return { pieces, features, toMove };
+        }
+
+        // Build prompt for AI coaching with Stockfish analysis
         function buildCoachingPrompt(context) {
-            const { theme, triggerType, fen, solution, mastery, failureCount, avgTime, timeSpent } = context;
+            const { theme, triggerType, fen, solution, mastery, failureCount, avgTime, timeSpent, analysis, positionInfo } = context;
 
-            let prompt = `You are a supportive chess coach. Generate a brief, encouraging coaching message.
+            // Build position description from Stockfish + FEN parsing
+            let positionDesc = `Position FEN: ${fen}\n`;
 
-Position FEN: ${fen}
+            if (positionInfo && positionInfo.features && positionInfo.features.length > 0) {
+                positionDesc += `Key pieces: ${positionInfo.features.slice(0, 5).join(', ')}\n`;
+                positionDesc += `Turn to move: ${positionInfo.toMove}\n`;
+            }
+
+            if (analysis && analysis.bestMove) {
+                const bestMoveReadable = aiEngine.convertMoveToReadable(analysis.bestMove);
+                const scoreText = analysis.score ? ` (eval: ${analysis.score > 0 ? '+' : ''}${analysis.score.toFixed(1)})` : '';
+                positionDesc += `Best move: ${bestMoveReadable}${scoreText}\n`;
+            }
+
+            let prompt = `You are a supportive chess coach. Generate a brief, encouraging coaching message that references the ACTUAL position.
+
+${positionDesc}
 Puzzle theme: ${theme}
 Solution moves: ${solution ? solution.join(', ') : 'unknown'}
 
@@ -3194,13 +3279,15 @@ Solution moves: ${solution ? solution.join(', ') : 'unknown'}
 
             if (triggerType === 'struggle') {
                 prompt += `The student has failed ${failureCount || 3} recent ${theme} puzzles.
-Provide a brief, encouraging tip that references THIS specific position.
+Provide a brief, encouraging tip that references specific pieces and squares from THIS position.
+Example: "Notice how the knight on f6 can reach e4 to fork the king and rook."
 Be conversational and supportive, not robotic.
 Maximum 2 sentences.`;
 
             } else if (triggerType === 'intro') {
                 prompt += `This is the student's first ${theme} puzzle.
-Provide a brief introduction to the ${theme} pattern using features from THIS position.
+Provide a brief introduction to the ${theme} pattern using actual piece locations from THIS position.
+Example: "In this position, your bishop on c4 can exploit the weakness on f7."
 Maximum 2 sentences.`;
 
             } else if (triggerType === 'mastered') {
@@ -3215,11 +3302,12 @@ Maximum 1 sentence.`;
 
             } else if (triggerType === 'slow') {
                 prompt += `The student took ${timeSpent}s on this puzzle (average: ${avgTime}s).
-Provide a brief tip about pattern recognition for ${theme} puzzles.
+Provide a brief tip about pattern recognition using THIS specific position.
+Reference actual pieces to help them see the pattern faster next time.
 Maximum 2 sentences.`;
             }
 
-            prompt += `\n\nGenerate ONLY the coaching message text. No labels, no formatting.`;
+            prompt += `\n\nGenerate ONLY the coaching message text. No labels, no formatting. Reference actual squares and pieces.`;
 
             return prompt;
         }
@@ -3275,20 +3363,30 @@ Maximum 2 sentences.`;
             }
         }
 
-        // Fallback message generation (no AI API required)
+        // Fallback message generation with position awareness (no AI API required)
         function generateFallbackMessage(context) {
-            const { theme, triggerType, mastery, failureCount, avgTime, timeSpent } = context;
+            const { theme, triggerType, mastery, failureCount, avgTime, timeSpent, analysis, positionInfo } = context;
+
+            // Try to add position-specific detail when available
+            let positionHint = '';
+            if (analysis && analysis.bestMove) {
+                const moveReadable = aiEngine.convertMoveToReadable(analysis.bestMove);
+                positionHint = ` The key move starts with ${moveReadable}.`;
+            } else if (positionInfo && positionInfo.features && positionInfo.features.length > 0) {
+                const firstFeature = positionInfo.features[0];
+                positionHint = ` Notice the ${firstFeature}.`;
+            }
 
             const messages = {
                 'struggle': [
-                    `Take your time with ${theme} puzzles - look for the key pieces and their relationships.`,
-                    `${theme} patterns can be tricky! Focus on identifying the vulnerable pieces first.`,
-                    `Remember: in ${theme} tactics, timing and piece coordination are crucial.`
+                    `Take your time with ${theme} puzzles - look for the key pieces and their relationships.${positionHint}`,
+                    `${theme} patterns can be tricky! Focus on identifying the vulnerable pieces first.${positionHint}`,
+                    `Remember: in ${theme} tactics, timing and piece coordination are crucial.${positionHint}`
                 ],
                 'intro': [
-                    `Welcome to ${theme} puzzles! This tactical pattern is all about exploiting piece positioning.`,
-                    `This is your first ${theme} puzzle - look for how the pieces interact to create the tactic.`,
-                    `${theme} is a fundamental pattern - take your time to understand it here.`
+                    `Welcome to ${theme} puzzles! This tactical pattern is all about exploiting piece positioning.${positionHint}`,
+                    `This is your first ${theme} puzzle - look for how the pieces interact to create the tactic.${positionHint}`,
+                    `${theme} is a fundamental pattern - take your time to understand it here.${positionHint}`
                 ],
                 'mastered': [
                     `Incredible! You've mastered ${theme} with ${mastery}% accuracy!`,
@@ -3301,9 +3399,9 @@ Maximum 2 sentences.`;
                     `Outstanding! Five straight successes shows you're in the zone.`
                 ],
                 'slow': [
-                    `You spent ${timeSpent}s on this one (average: ${avgTime}s). Try to spot ${theme} patterns more quickly!`,
-                    `Pattern recognition speeds up with practice. Look for ${theme} setups faster!`,
-                    `The more ${theme} puzzles you solve, the faster you'll recognize them!`
+                    `You spent ${timeSpent}s on this one (average: ${avgTime}s). Try to spot ${theme} patterns more quickly!${positionHint}`,
+                    `Pattern recognition speeds up with practice. Look for ${theme} setups faster!${positionHint}`,
+                    `The more ${theme} puzzles you solve, the faster you'll recognize them!${positionHint}`
                 ]
             };
 
