@@ -1922,7 +1922,7 @@
                     // White to move: don't flip, white (board[7]) already at bottom
                     const displayRow = isBlackToMove ? 7 - row : row;
                     const displayCol = isBlackToMove ? 7 - col : col;
-                    const actualRow = isBlackToMove ? 7 - row : row;
+                    const actualRow = row;  // ✅ Always use actual row from FEN board array (never flip for logic)
 
                     const square = document.createElement('div');
                     square.className = `square ${(displayRow + displayCol) % 2 === 0 ? 'light' : 'dark'}`;
@@ -2636,6 +2636,18 @@
         function updatePuzzleInfo() {
             const puzzle = gameState.currentPuzzle;
             if (!puzzle) return;
+
+            // Validate toMove matches FEN position
+            const chess = new Chess(puzzle.fen);
+            const actualTurn = chess.turn() === 'w' ? 'White' : 'Black';
+            if (puzzle.toMove !== actualTurn) {
+                logger.log('warn', `Puzzle "${puzzle.title}" has incorrect toMove field`, {
+                    expected: actualTurn,
+                    actual: puzzle.toMove,
+                    fen: puzzle.fen
+                });
+                puzzle.toMove = actualTurn; // Auto-correct
+            }
 
             document.getElementById('puzzle-title').textContent = puzzle.title;
             document.getElementById('to-move').textContent = puzzle.toMove;
