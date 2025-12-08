@@ -1930,12 +1930,11 @@
                         square.textContent = pieceMap[piece];
                         // Add color class based on piece case (uppercase = white, lowercase = black)
                         const isWhitePiece = piece === piece.toUpperCase();
-                        const isBlackPiece = piece === piece.toLowerCase() && piece !== piece.toUpperCase();
                         square.classList.add(isWhitePiece ? 'white-piece' : 'black-piece');
 
                         // Make piece draggable only if it's the player's turn
                         const isBlackToMove = gameState.currentPuzzle.toMove === 'Black';
-                        if ((isBlackToMove && isBlackPiece) || (!isBlackToMove && isWhitePiece)) {
+                        if ((isBlackToMove && !isWhitePiece) || (!isBlackToMove && isWhitePiece)) {
                             square.draggable = true;
                             square.style.cursor = 'grab';
 
@@ -1969,10 +1968,9 @@
 
             if (piece) {
                 const isWhitePiece = piece === piece.toUpperCase();
-                const isBlackPiece = piece === piece.toLowerCase() && piece !== piece.toUpperCase();
 
                 // Only show legal moves for pieces that match the side to move
-                if ((isWhiteToMove && isWhitePiece) || (!isWhiteToMove && isBlackPiece)) {
+                if ((isWhiteToMove && isWhitePiece) || (!isWhiteToMove && !isWhitePiece)) {
                     const legalMoves = getLegalMoves(row, col);
 
                     legalMoves.forEach(move => {
@@ -2062,10 +2060,9 @@
                 // First click - select piece (only if it belongs to the player)
                 if (piece) {
                     const isWhitePiece = piece === piece.toUpperCase();
-                    const isBlackPiece = piece === piece.toLowerCase() && piece !== piece.toUpperCase();
 
                     // Only allow selecting pieces that match the side to move
-                    if ((isWhiteToMove && isWhitePiece) || (!isWhiteToMove && isBlackPiece)) {
+                    if ((isWhiteToMove && isWhitePiece) || (!isWhiteToMove && !isWhitePiece)) {
                         gameState.selectedSquare = { row, col };
                         // Use data attributes to find the correct square (handles board flipping)
                         const square = document.querySelector(`.square[data-row="${row}"][data-col="${col}"]`);
@@ -2078,19 +2075,41 @@
                     }
                 }
             } else {
-                // Second click - attempt move
+                // Second click - check if it's the same square (deselect) or a move
                 const from = gameState.selectedSquare;
-                const move = squareToAlgebraic(from.row, from.col) + squareToAlgebraic(row, col);
 
-                logger.trackAction('move_attempt', { from, to: {row, col}, move });
+                // If clicking the same square, just deselect
+                if (from.row === row && from.col === col) {
+                    const squares = document.querySelectorAll('.square');
+                    squares.forEach(sq => sq.classList.remove('selected'));
+                    gameState.selectedSquare = null;
+                    logger.trackAction('piece_deselected', { row, col });
+                    return;
+                }
 
-                // Clear selection
-                const squares = document.querySelectorAll('.square');
-                squares.forEach(sq => sq.classList.remove('selected'));
-                gameState.selectedSquare = null;
+                // Check if this is a legal move
+                const legalMoves = getLegalMoves(from.row, from.col);
+                const isLegalMove = legalMoves.some(move => move.toRow === row && move.toCol === col);
 
-                // Check if move is correct
-                checkMove(move, row, col);
+                if (isLegalMove) {
+                    // It's a legal move - attempt it
+                    const move = squareToAlgebraic(from.row, from.col) + squareToAlgebraic(row, col);
+                    logger.trackAction('move_attempt', { from, to: {row, col}, move });
+
+                    // Clear selection
+                    const squares = document.querySelectorAll('.square');
+                    squares.forEach(sq => sq.classList.remove('selected'));
+                    gameState.selectedSquare = null;
+
+                    // Check if move is correct
+                    checkMove(move, row, col);
+                } else {
+                    // Not a legal move - deselect
+                    const squares = document.querySelectorAll('.square');
+                    squares.forEach(sq => sq.classList.remove('selected'));
+                    gameState.selectedSquare = null;
+                    logger.trackAction('invalid_destination_clicked', { from, to: {row, col} });
+                }
             }
         }
 
