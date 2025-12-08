@@ -1640,7 +1640,8 @@
 
         // ==================== PUZZLE DATABASE ====================
         // Puzzles organized by difficulty (rating)
-        const puzzleDatabase = {
+        // Will be loaded from puzzles.json or fall back to minimal set
+        let puzzleDatabase = {
             // 600-800: Very Easy - Basic captures and simple tactics
             beginner: [
                 {
@@ -1862,6 +1863,45 @@
             ]
         };
 
+        // ==================== PUZZLE LOADER ====================
+        async function loadPuzzleDatabase() {
+            try {
+                logger.log('info', 'Loading Lichess puzzle database...');
+                const response = await fetch('puzzles.json');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Replace the minimal fallback database with full Lichess database
+                puzzleDatabase = data.tiers;
+
+                logger.log('success', `Loaded ${data.meta.total_puzzles} puzzles from Lichess database`);
+                logger.log('info', 'Puzzle distribution:', {
+                    beginner: puzzleDatabase.beginner.length,
+                    easy: puzzleDatabase.easy.length,
+                    intermediate: puzzleDatabase.intermediate.length,
+                    advanced: puzzleDatabase.advanced.length,
+                    expert: puzzleDatabase.expert.length,
+                    master: puzzleDatabase.master?.length || 0
+                });
+
+                return true;
+            } catch (error) {
+                logger.log('warn', 'Could not load puzzles.json, using fallback database', { error: error.message });
+                logger.log('info', 'Fallback puzzle count:', {
+                    beginner: puzzleDatabase.beginner.length,
+                    easy: puzzleDatabase.easy.length,
+                    intermediate: puzzleDatabase.intermediate.length,
+                    advanced: puzzleDatabase.advanced.length,
+                    expert: puzzleDatabase.expert.length
+                });
+                return false;
+            }
+        }
+
         // ==================== RANK SYSTEM ====================
         const ranks = [
             { name: "Beginner", minRating: 0, icon: "♟️", color: "#95a5a6" },
@@ -1886,7 +1926,10 @@
         ];
 
         // ==================== INITIALIZATION ====================
-        function init() {
+        async function init() {
+            // Load puzzle database first
+            await loadPuzzleDatabase();
+
             createParticles();
             loadGameState();
             renderBoard();
