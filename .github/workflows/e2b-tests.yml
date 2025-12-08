@@ -86,6 +86,38 @@ jobs:
         if: steps.tests.outputs.tests_passed == 'false'
         run: exit 1
 
+  collect-session-logs:
+    runs-on: ubuntu-latest
+    needs: test-live-site
+    if: always() # Run even if tests fail
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install E2B and dependencies
+        run: |
+          pip install e2b-code-interpreter playwright
+          playwright install chromium
+
+      - name: Collect session logs
+        run: |
+          cd /Users/benfife/github/ammonfife/e2b/examples
+          python collect_session_logs.py
+
+      - name: Commit session logs to repo
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add session-logs/
+          git commit -m "chore: Add session logs from automated testing [skip ci]" || echo "No changes to commit"
+          git push
+
   notify-on-failure:
     needs: test-live-site
     if: failure()
