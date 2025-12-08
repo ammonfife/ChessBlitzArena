@@ -2538,14 +2538,18 @@
             // Bootcamp mode: Track theme performance
             if (gameState.inBootcamp && gameState.currentPuzzle) {
                 const themes = gameState.currentPuzzle.themes || [];
+                const timeSpent = 30 - gameState.timer;
                 updateThemeStats(themes, true);
 
                 // Update session tracking
                 const lastPuzzle = gameState.sessionPuzzles[gameState.sessionPuzzles.length - 1];
                 if (lastPuzzle && lastPuzzle.puzzleId === gameState.currentPuzzle.id) {
                     lastPuzzle.correct = true;
-                    lastPuzzle.timeSpent = 30 - gameState.timer;
+                    lastPuzzle.timeSpent = timeSpent;
                 }
+
+                // Check for coaching triggers
+                checkCoachingTriggers(gameState.currentPuzzle, true, timeSpent);
             }
 
             updateAllDisplays();
@@ -2589,14 +2593,18 @@
             // Bootcamp mode: Track theme performance
             if (gameState.inBootcamp && gameState.currentPuzzle) {
                 const themes = gameState.currentPuzzle.themes || [];
+                const timeSpent = 30 - gameState.timer;
                 updateThemeStats(themes, false);
 
                 // Update session tracking
                 const lastPuzzle = gameState.sessionPuzzles[gameState.sessionPuzzles.length - 1];
                 if (lastPuzzle && lastPuzzle.puzzleId === gameState.currentPuzzle.id) {
                     lastPuzzle.correct = false;
-                    lastPuzzle.timeSpent = 30 - gameState.timer;
+                    lastPuzzle.timeSpent = timeSpent;
                 }
+
+                // Check for coaching triggers
+                checkCoachingTriggers(gameState.currentPuzzle, false, timeSpent);
             }
 
             updateAllDisplays();
