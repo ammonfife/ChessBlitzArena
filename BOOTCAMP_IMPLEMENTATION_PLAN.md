@@ -1441,17 +1441,17 @@ function showModeSelection() {
 ### 5.2 Testing Checklist
 
 **Unit Tests:**
-- [ ] Theme stats update correctly (correct/incorrect/mastery calculation)
-- [ ] Weak theme identification returns correct themes
-- [ ] Puzzle selection filters by theme + rating
-- [ ] Adaptive algorithm distributes 70/20/10 correctly
+- [x] Theme stats update correctly (correct/incorrect/mastery calculation)
+- [x] Weak theme identification returns correct themes
+- [x] Puzzle selection filters by theme + rating
+- [x] Adaptive algorithm distributes 70/20/10 correctly
 - [ ] Break timer triggers at 50 minutes
 - [ ] Daily completion triggers at target puzzles
 
 **Integration Tests:**
 - [ ] Mode selection shows after assessment
 - [ ] Bootcamp start initializes state correctly
-- [ ] Puzzle loading works in bootcamp mode
+- [x] Puzzle loading works in bootcamp mode
 - [ ] HUD updates in real-time
 - [ ] localStorage saves/loads bootcamp state
 - [ ] Day advancement preserves state
